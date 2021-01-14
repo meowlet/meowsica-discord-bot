@@ -1,0 +1,54 @@
+# dependencies (bun install)
+node_modules
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs (root only — do not ignore src/features/logs/)
+/logs
+_.log
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+# Db files
+*.db
+*.db-shm
+*.db-wal
+
+# Audio cache
+cache/
+
+
+CONTEXT_DUMP.md
+CLAUDE.md
+
+discord-tts-bot
+
+# local-only design docs
+docs/
+
+# Cursor IDE rules and settings
+.cursor/

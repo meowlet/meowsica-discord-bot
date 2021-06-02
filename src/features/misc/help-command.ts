@@ -48,3 +48,33 @@ export class HelpCommand implements Command {
       settings: [],
       misc: [],
     };
+    for (const s of summaries) grouped[s.category].push(s);
+    const embed = new EmbedBuilder()
+      .setTitle(t(locale, "commands.help.title"))
+      .setDescription(t(locale, "commands.help.subtitle"))
+      .setColor(Colors.Primary);
+    addCategory(embed, locale, grouped.voice, "voice");
+    addCategory(embed, locale, grouped.tts, "tts");
+    addCategory(embed, locale, grouped.settings, "settings");
+    addCategory(embed, locale, grouped.misc, "misc");
+    embed.setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+  }
+
+  private summarize(cmd: Command, locale: string): CommandSummary {
+    const name = cmd.data.name;
+    const description = t(locale, `commands.${name}.description`);
+    return { name, description, category: categorize(name) };
+  }
+}
+
+function categorize(name: string): CommandCategory {
+  if (name === "join" || name === "leave") return "voice";
+  if (
+    name === "say" ||
+    name === "stop" ||
+    name === "skip" ||
+    name === "queue"
+  ) {
+    return "tts";
+  }

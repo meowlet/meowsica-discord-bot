@@ -78,3 +78,21 @@ function categorize(name: string): CommandCategory {
   ) {
     return "tts";
   }
+  if (name === "voice" || name === "language") return "settings";
+  return "misc";
+}
+
+function addCategory(
+  embed: EmbedBuilder,
+  locale: string,
+  list: CommandSummary[],
+  key: CommandCategory,
+): void {
+  if (list.length === 0) return;
+  const value = list.map((c) => `**/${c.name}** — ${c.description}`).join("\n");
+  embed.addFields({
+    name: t(locale, `commands.help.categories.${key}`),
+    value,
+    inline: false,
+  });
+}

@@ -1,10 +1,11 @@
 # meowsica-discord-bot
 
-A Discord music/TTS bot for small communities.
+A Discord bot with ping and help slash commands.
 
 ## Requirements
 
 - Node.js 14+
+- A Discord bot token
 
 ## Install
 
@@ -15,5 +16,16 @@ npm install
 ## Run
 
 ```bash
-node src/index.js
+npm run build
+npm start
 ```
+
+## Deploy commands
+
+```bash
+node dist/deploy.js
+```
+
+## Version
+
+0.1.0

@@ -28,3 +28,59 @@ export class JoinCommand implements Command {
   private readonly voice: VoiceManager;
 
   constructor(deps: JoinCommandDeps) {
+    this.localeResolver = deps.localeResolver;
+    this.voice = deps.voice;
+  }
+
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    if (!interaction.inCachedGuild()) {
+      await interaction.reply({
+        content: t(locale, "commands.join.serverOnly"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const channel = interaction.member.voice.channel;
+    if (!channel) {
+      await interaction.reply({
+        content: t(locale, "commands.join.notInVoice"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    await interaction.deferReply();
+    try {
+      await this.voice.join(channel);
+      const embed = new EmbedBuilder()
+        .setTitle(t(locale, "commands.join.success"))
+        .setDescription(
+          t(locale, "commands.join.joinedChannel", { channel: channel.name }),
+        )
+        .setColor(Colors.Success);
+      await interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+      const embed = new EmbedBuilder()
+        .setTitle(t(locale, "common.error"))
+        .setDescription(joinErrorMessage(locale, err))
+        .setColor(Colors.Error);
+      await interaction.editReply({ embeds: [embed] });
+    }
+  }
+}
+
+function joinErrorMessage(locale: Locale, err: unknown): string {
+  if (!(err instanceof VoiceJoinError)) {
+    return t(locale, "commands.join.failed");
+  }
+  switch (err.reason) {
+    case "not_joinable":
+      return t(locale, "commands.join.notJoinable");
+    case "not_speakable":
+      return t(locale, "commands.join.notSpeakable");
+    case "channel_full":
+      return t(locale, "commands.join.channelFull");
+    default:
+      return t(locale, "commands.join.failed");
+  }
+}

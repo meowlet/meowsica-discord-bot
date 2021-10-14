@@ -28,3 +28,48 @@ export class LeaveCommand implements Command {
 
   constructor(deps: LeaveCommandDeps) {
     this.localeResolver = deps.localeResolver;
+    this.voice = deps.voice;
+  }
+
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    if (!interaction.inCachedGuild()) {
+      await interaction.reply({
+        content: t(locale, "commands.leave.serverOnly"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const guildId = interaction.guildId;
+    if (!this.voice.isConnected(guildId)) {
+      await interaction.reply({
+        content: t(locale, "commands.leave.notConnected"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const userChannelId = interaction.member.voice.channel?.id;
+    const botChannelId = this.voice.getChannelId(guildId);
+    if (!userChannelId || userChannelId !== botChannelId) {
+      await interaction.reply({
+        content: t(locale, "commands.leave.notInSameChannel"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const success = this.voice.leave(guildId);
+    if (success) {
+      const embed = new EmbedBuilder()
+        .setTitle(t(locale, "commands.leave.success"))
+        .setDescription(t(locale, "commands.leave.disconnected"))
+        .setColor(Colors.Success);
+      await interaction.reply({ embeds: [embed] });
+      return;
+    }
+    const embed = new EmbedBuilder()
+      .setTitle(t(locale, "common.error"))
+      .setDescription(t(locale, "commands.leave.failed"))
+      .setColor(Colors.Error);
+    await interaction.reply({ embeds: [embed] });
+  }
+}

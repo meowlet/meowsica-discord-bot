@@ -28,3 +28,23 @@ export class QuotaExceededError extends AppError {
     this.limit = limit;
     this.resetsAt = resetsAt;
   }
+}
+
+export class NotInVoiceError extends AppError {
+  constructor() {
+    super("NOT_IN_VOICE", "User is not in a voice channel");
+  }
+}
+
+export class NotConnectedError extends AppError {
+  constructor() {
+    super("NOT_CONNECTED", "Bot is not connected to a voice channel");
+  }
+}
+
+export class TtsProviderError extends AppError {
+  constructor(message: string, options?: ErrorOptions) {
+    super("TTS_PROVIDER_ERROR", message, options);
+  }
+}
+

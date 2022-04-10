@@ -48,3 +48,17 @@ export class TtsProviderError extends AppError {
   }
 }
 
+export type VoiceJoinReason =
+  | "not_joinable"
+  | "not_speakable"
+  | "channel_full"
+  | "timeout";
+
+export class VoiceJoinError extends AppError {
+  readonly reason: VoiceJoinReason;
+
+  constructor(reason: VoiceJoinReason, message: string, options?: ErrorOptions) {
+    super("VOICE_JOIN_ERROR", message, options);
+    this.reason = reason;
+  }
+}

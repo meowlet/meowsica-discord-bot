@@ -1,7 +1,16 @@
-import type { CommandInteraction, PermissionResolvable, SlashCommandBuilder } from 'discord.js';
+import type {
+  ChatInputCommandInteraction,
+  PermissionResolvable,
+  SlashCommandBuilder,
+} from 'discord.js';
 
 export interface SlashCommand {
   readonly data: SlashCommandBuilder;
   readonly requiredPermissions?: PermissionResolvable[];
-  execute(interaction: CommandInteraction): Promise<void>;
+  execute(interaction: ChatInputCommandInteraction): Promise<void>;
+}
+
+export interface ComponentHandler {
+  readonly customIdPrefix: string;
+  handle(interaction: unknown): Promise<void>;
 }

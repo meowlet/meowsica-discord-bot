@@ -1,31 +1,14 @@
 # meowsica-discord-bot
 
-A Discord bot with ping and help slash commands.
+A Discord voice bot with /join, /leave, and i18n support (en, vi).
 
-## Requirements
+## Commands
 
-- Node.js 14+
-- A Discord bot token
-
-## Install
-
-```bash
-npm install
-```
-
-## Run
-
-```bash
-npm run build
-npm start
-```
-
-## Deploy commands
-
-```bash
-node dist/deploy.js
-```
+- `/ping`
+- `/help`
+- `/join`
+- `/leave`
 
 ## Version
 
-0.1.0
+0.2.0

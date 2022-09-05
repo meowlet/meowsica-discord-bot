@@ -58,3 +58,66 @@ export class ReadyHandler {
     this.attachResumeListener(client);
     this.resetHousekeepingTimer();
   }
+
+  private attachResumeListener(client: BotClient): void {
+    if (this.resumeListenerAttached) return;
+    this.resumeListenerAttached = true;
+    client.on(Events.ShardResume, () => {
+      this.logger.info("shard resumed; re-applying presence");
+      this.applyPresence(client);
+    });
+  }
+
+  private resetHousekeepingTimer(): void {
+    if (this.housekeepingTimer) clearInterval(this.housekeepingTimer);
+    const timer = setInterval(
+      () => this.runHousekeeping(),
+      HOUSEKEEPING_INTERVAL_MS,
+    );
+    if (typeof timer.unref === "function") timer.unref();
+    this.housekeepingTimer = timer;
+  }
+
+  private shouldWarmupVoiceCatalog(client: BotClient): boolean {
+    if (client.shardId === null) return true;
+    return client.shardId === 0;
+  }
+
+  shutdown(): void {
+    if (this.housekeepingTimer) clearInterval(this.housekeepingTimer);
+    this.housekeepingTimer = null;
+  }
+
+  private applyPresence(client: BotClient): void {
+    if (!client.user) return;
+    const data: PresenceData = {
+      status: this.presence.status,
+      activities: [
+        {
+          name: this.presence.activityName,
+          type: this.presence.activityType,
+        },
+      ],
+    };
+    client.user.setPresence(data);
+  }
+
+  private async runHousekeeping(): Promise<void> {
+    try {
+      const idleCleaned = this.player.cleanupIdle();
+      if (idleCleaned > 0) {
+        this.logger.info(
+          `housekeeping: cleaned ${idleCleaned} idle players (${this.player.getActiveGuildCount()} active)`,
+        );
+      }
+      await this.cache.cleanup();
+      const stats = await this.cache.stats();
+      this.logger.debug("cache stats", {
+        files: stats.totalFiles,
+        sizeBytes: stats.totalSizeBytes,
+      });
+    } catch (err) {
+      this.logger.warn("housekeeping error", err);
+    }
+  }
+}

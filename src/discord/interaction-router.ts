@@ -48,3 +48,53 @@ export class InteractionRouter {
     this.componentHandlers = deps.componentHandlers;
     this.localeResolver = deps.localeResolver;
     this.commandLogger = deps.commandLogger;
+    this.interactionContext = deps.interactionContext;
+  }
+
+  async route(interaction: Interaction): Promise<void> {
+    const store = this.buildStore(interaction);
+    await this.interactionContext.run(store, async () => {
+      if (interaction.isChatInputCommand()) {
+        await this.handleCommand(interaction);
+        return;
+      }
+      if (interaction.isButton() || interaction.isStringSelectMenu()) {
+        await this.handleComponent(interaction);
+        return;
+      }
+      this.logger.debug(
+        `ignored unsupported interaction type: ${interaction.type}`,
+      );
+    });
+  }
+
+  private async handleCommand(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<void> {
+    const command = this.commands.get(interaction.commandName);
+    const locale = await this.localeResolver.resolve(interaction);
+    if (!command) {
+      this.logger.warn(`unknown command ${interaction.commandName}`);
+      this.commandLogger.log(this.entryFor(interaction, "error"));
+      try {
+        await interaction.reply({
+          content: t(locale, "common.unknownCommand"),
+          flags: MessageFlags.Ephemeral,
+        });
+      } catch (err) {
+        if (!isAcknowledgmentError(err)) {
+          this.logger.warn("failed to reply unknown command", err);
+        }
+      }
+      return;
+    }
+    const shouldAutoLog = !command.selfLog;
+    try {
+      this.logger.info(
+        `/${interaction.commandName} by ${interaction.user.tag}`,
+      );
+      await command.execute(interaction);
+      if (shouldAutoLog) {
+        this.commandLogger.log(this.entryFor(interaction, "success"));
+      }
+    } catch (err) {

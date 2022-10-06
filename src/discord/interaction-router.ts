@@ -98,3 +98,63 @@ export class InteractionRouter {
         this.commandLogger.log(this.entryFor(interaction, "success"));
       }
     } catch (err) {
+      const status =
+        err instanceof QuotaExceededError ? "quota_limit" : "error";
+      this.logger.error(`error executing /${interaction.commandName}`, err);
+      if (shouldAutoLog) {
+        this.commandLogger.log(this.entryFor(interaction, status));
+      }
+      await this.replyWithError(interaction, locale, err);
+    }
+  }
+
+  private async handleComponent(
+    interaction: ButtonInteraction | StringSelectMenuInteraction,
+  ): Promise<void> {
+    const handler = this.componentHandlers.find((h) =>
+      h.matches(interaction.customId),
+    );
+    if (!handler) {
+      this.logger.warn(`unknown component: ${interaction.customId}`);
+      return;
+    }
+    try {
+      await handler.handle(interaction as ComponentInteraction);
+    } catch (err) {
+      this.logger.error(`component error ${interaction.customId}`, err);
+      if (isAcknowledgmentError(err)) return;
+      const locale = await this.localeResolver.resolve(interaction);
+      await this.notifyComponentError(interaction, locale);
+    }
+  }
+
+  private async notifyComponentError(
+    interaction: ButtonInteraction | StringSelectMenuInteraction,
+    locale: string,
+  ): Promise<void> {
+    const message = t(locale, "common.errorRetry");
+    try {
+      if (interaction.deferred) {
+        await interaction.editReply({ content: message });
+        return;
+      }
+      if (interaction.replied) {
+        await interaction.followUp({
+          content: message,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.reply({
+        content: message,
+        flags: MessageFlags.Ephemeral,
+      });
+    } catch (replyErr) {
+      if (!isAcknowledgmentError(replyErr)) {
+        this.logger.warn("failed to notify component error", replyErr);
+      }
+    }
+  }
+
+  private async replyWithError(
+    interaction: ChatInputCommandInteraction,

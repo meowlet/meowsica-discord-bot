@@ -158,3 +158,62 @@ export class InteractionRouter {
 
   private async replyWithError(
     interaction: ChatInputCommandInteraction,
+    locale: string,
+    err: unknown,
+  ): Promise<void> {
+    if (isAcknowledgmentError(err)) return;
+    const errorMessage = t(locale, "common.commandError");
+    try {
+      if (interaction.deferred && !interaction.replied) {
+        await interaction.editReply({ content: errorMessage });
+        return;
+      }
+      if (interaction.replied) {
+        await interaction.followUp({
+          content: errorMessage,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.reply({
+        content: errorMessage,
+        flags: MessageFlags.Ephemeral,
+      });
+    } catch (replyErr) {
+      if (!isAcknowledgmentError(replyErr)) {
+        this.logger.warn("failed to deliver error reply", replyErr);
+      }
+    }
+  }
+
+  private entryFor(
+    interaction: ChatInputCommandInteraction,
+    status: CommandLogEntry["status"],
+  ): CommandLogEntry {
+    return this.commandLogger.fromInteraction(interaction, status);
+  }
+
+  private buildStore(interaction: Interaction): InteractionContextStore {
+    return {
+      interactionId: interaction.id,
+      userId: interaction.user.id,
+      guildId: interaction.guild?.id,
+      command: interaction.isChatInputCommand()
+        ? interaction.commandName
+        : undefined,
+      shardId: interaction.guild?.shardId,
+      startedAt: Date.now(),
+    };
+  }
+}
+
+const ACK_ERROR_CODES = new Set<number>([
+  RESTJSONErrorCodes.UnknownInteraction,
+  RESTJSONErrorCodes.InteractionHasAlreadyBeenAcknowledged,
+]);
+
+function isAcknowledgmentError(err: unknown): boolean {
+  if (!(err instanceof DiscordAPIError)) return false;
+  const code = typeof err.code === "number" ? err.code : Number(err.code);
+  return ACK_ERROR_CODES.has(code);
+}

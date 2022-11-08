@@ -148,3 +148,153 @@ export class PlayerManager {
       };
     }
     state.queue.push(item);
+    return {
+      queued: true,
+      position: state.queue.length,
+      provider,
+      providerLabel,
+      modelLabel,
+    };
+  }
+
+  skipMessage(guildId: string): boolean {
+    const state = this.players.get(guildId);
+    if (!state || !state.isPlaying) return false;
+    if (state.currentItem) {
+      state.currentItem.currentIndex = state.currentItem.payloads.length;
+    }
+    state.player.stop(true);
+    return true;
+  }
+
+  clear(guildId: string): number {
+    const state = this.players.get(guildId);
+    if (!state) return 0;
+    const cleared = state.queue.length + (state.currentItem ? 1 : 0);
+    state.queue = [];
+    state.currentItem = null;
+    state.isPlaying = false;
+    state.starting = false;
+    state.player.stop(true);
+    return cleared;
+  }
+
+  getStatus(guildId: string): {
+    isPlaying: boolean;
+    currentItem: QueueItem | null;
+    queueLength: number;
+    queue: QueueItem[];
+  } {
+    const state = this.players.get(guildId);
+    if (!state) {
+      return { isPlaying: false, currentItem: null, queueLength: 0, queue: [] };
+    }
+    return {
+      isPlaying: state.isPlaying,
+      currentItem: state.currentItem,
+      queueLength: state.queue.length,
+      queue: [...state.queue],
+    };
+  }
+
+  cleanup(guildId: string): void {
+    const state = this.players.get(guildId);
+    if (!state) return;
+    state.player.stop(true);
+    state.queue = [];
+    state.currentItem = null;
+    state.isPlaying = false;
+    state.starting = false;
+    this.players.delete(guildId);
+  }
+
+  isPlaying(guildId: string): boolean {
+    return this.players.get(guildId)?.isPlaying ?? false;
+  }
+
+  getActiveGuildCount(): number {
+    return this.players.size;
+  }
+
+  getMaxQueueSize(): number {
+    return this.maxQueueSize;
+  }
+
+  cleanupIdle(): number {
+    let cleaned = 0;
+    for (const [guildId, state] of this.players) {
+      if (
+        !state.isPlaying &&
+        !state.currentItem &&
+        !state.starting &&
+        state.queue.length === 0
+      ) {
+        state.player.stop(true);
+        this.players.delete(guildId);
+        cleaned++;
+      }
+    }
+    return cleaned;
+  }
+
+  shutdown(): void {
+    for (const [guildId, state] of this.players) {
+      try {
+        state.player.stop(true);
+      } catch {
+        // noop
+      }
+      this.players.delete(guildId);
+    }
+    if (this.throttleCleanupTimer) {
+      clearInterval(this.throttleCleanupTimer);
+      this.throttleCleanupTimer = null;
+    }
+    this.userThrottle.clear();
+  }
+
+  private rejection(reason: QueueRejection): QueueResult {
+    return {
+      queued: false,
+      position: -1,
+      provider: "basic",
+      providerLabel: "Google Translate",
+      modelLabel: "N/A",
+      rejection: reason,
+    };
+  }
+
+  tryAcquireThrottle(userId: string): ThrottleAcquisition {
+    const last = this.userThrottle.get(userId);
+    const now = Date.now();
+    if (last !== undefined) {
+      const elapsed = now - last;
+      if (elapsed < this.throttleMs) {
+        return { ok: false, retryAfterMs: this.throttleMs - elapsed };
+      }
+    }
+    this.userThrottle.set(userId, now);
+    return { ok: true };
+  }
+
+  private pruneThrottleMap(): void {
+    const cutoff = Date.now() - this.throttleMs * 5;
+    for (const [userId, last] of this.userThrottle) {
+      if (last < cutoff) this.userThrottle.delete(userId);
+    }
+  }
+
+  private getOrCreateState(guildId: string): GuildPlayerState {
+    let state = this.players.get(guildId);
+    if (state) return state;
+    const player = createAudioPlayer();
+    state = {
+      player,
+      queue: [],
+      isPlaying: false,
+      currentItem: null,
+      starting: false,
+    };
+    player.on(AudioPlayerStatus.Idle, () => this.handleIdle(guildId));
+    player.on("error", (err) => {
+      this.logger.error(`audio player error guild=${guildId}`, err);

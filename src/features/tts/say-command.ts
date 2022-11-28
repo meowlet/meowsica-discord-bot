@@ -118,3 +118,105 @@ export class SayCommand implements Command {
         language,
         userId: interaction.user.id,
       });
+      if (result.rejection) {
+        await this.handleRejection(interaction, locale, result);
+        return;
+      }
+      const isWavenet = result.provider === "wavenet";
+      const embed = new EmbedBuilder()
+        .setColor(isWavenet ? Colors.Wavenet : Colors.Blurple)
+        .setDescription(validation.sanitized)
+        .setFooter({
+          text: interaction.user.username,
+          iconURL: interaction.user.displayAvatarURL(),
+        });
+      await interaction.editReply({
+        embeds: [embed],
+        allowedMentions: { parse: [] },
+      });
+      this.commandLogger.log(
+        this.commandLogger.fromInteraction(
+          interaction,
+          "success",
+          result.modelLabel,
+        ),
+      );
+    } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        const quotaMessage = t(locale, "commands.profile.quotaExceeded", {
+          used: err.used.toLocaleString(),
+          limit: err.limit.toLocaleString(),
+        });
+        await this.replyEphemeralAfterDefer(interaction, quotaMessage);
+        this.commandLogger.log(
+          this.commandLogger.fromInteraction(interaction, "quota_limit"),
+        );
+        return;
+      }
+      this.commandLogger.log(
+        this.commandLogger.fromInteraction(interaction, "error"),
+      );
+      await this.replyEphemeralAfterDefer(
+        interaction,
+        sayJoinErrorMessage(locale, err),
+      );
+    }
+  }
+
+  private async handleRejection(
+    interaction: ChatInputCommandInteraction,
+    locale: Locale,
+    result: QueueResult,
+  ): Promise<void> {
+    this.commandLogger.log(
+      this.commandLogger.fromInteraction(interaction, "error"),
+    );
+    const content = this.formatRejection(locale, result);
+    await this.replyEphemeralAfterDefer(interaction, content);
+  }
+
+  private formatRejection(locale: Locale, result: QueueResult): string {
+    if (result.rejection === "queue_full") {
+      return t(locale, "commands.say.queueFull", {
+        max: this.player.getMaxQueueSize(),
+      });
+    }
+    return t(locale, "commands.say.emptyMessage");
+  }
+
+  private async replyEphemeralAfterDefer(
+    interaction: ChatInputCommandInteraction,
+    content: string,
+  ): Promise<void> {
+    try {
+      await interaction.deleteReply();
+    } catch {
+      // noop
+    }
+    try {
+      await interaction.followUp({
+        content,
+        flags: MessageFlags.Ephemeral,
+        allowedMentions: { parse: [] },
+      });
+    } catch {
+      // noop
+    }
+  }
+}
+
+function sayJoinErrorMessage(locale: Locale, err: unknown): string {
+  if (!(err instanceof VoiceJoinError)) {
+    return t(locale, "commands.say.joinFailed");
+  }
+  switch (err.reason) {
+    case "not_joinable":
+      return t(locale, "commands.join.notJoinable");
+    case "not_speakable":
+      return t(locale, "commands.join.notSpeakable");
+    case "channel_full":
+      return t(locale, "commands.join.channelFull");
+    default:
+      return t(locale, "commands.say.joinFailed");
+  }
+}

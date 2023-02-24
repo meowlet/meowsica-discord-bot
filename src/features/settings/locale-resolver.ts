@@ -28,3 +28,37 @@ export class LocaleResolver {
   async resolve(interaction: Interaction): Promise<Locale> {
     const userId = interaction.user.id;
     const prefs = await this.userPrefs.get(userId);
+    if (prefs?.uiLocale && isSupportedLocale(prefs.uiLocale)) {
+      return prefs.uiLocale;
+    }
+    if (interaction.guildId) {
+      const settings = await this.guildSettings.get(interaction.guildId);
+      if (settings?.uiLocale && isSupportedLocale(settings.uiLocale)) {
+        return settings.uiLocale;
+      }
+    }
+    const discordLocale = interaction.locale;
+    if (discordLocale) {
+      const short = discordLocale.split("-")[0] ?? "";
+      if (isSupportedLocale(short)) return short;
+    }
+    return DEFAULT_LOCALE;
+  }
+
+  async resolveTtsLanguage(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<string> {
+    const userId = interaction.user.id;
+    const prefs = await this.userPrefs.get(userId);
+    if (prefs?.tts.language && isSupportedLanguage(prefs.tts.language)) {
+      return prefs.tts.language;
+    }
+    if (interaction.guildId) {
+      const settings = await this.guildSettings.get(interaction.guildId);
+      if (settings?.ttsLanguage && isSupportedLanguage(settings.ttsLanguage)) {
+        return settings.ttsLanguage;
+      }
+    }
+    return DEFAULT_LANGUAGE_CODE;
+  }
+}

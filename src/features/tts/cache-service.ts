@@ -98,3 +98,83 @@ export class TtsCacheService {
     this.logger.debug(`stored ${path} (${buffer.length} bytes)`);
     this.maybeTriggerCleanup();
     return path;
+  }
+
+  private maybeTriggerCleanup(): void {
+    if (this.cleanupRunning) return;
+    const now = Date.now();
+    if (now - this.lastSizeCheckAt < SIZE_CHECK_INTERVAL_MS) return;
+    if (this.currentSizeBytes < this.maxBytes) return;
+    this.cleanup().catch((err) =>
+      this.logger.warn("background cleanup failed", err),
+    );
+  }
+
+  async stats(): Promise<CacheStats> {
+    try {
+      const files = await readdir(this.cacheDir);
+      const infos = await this.batchStat(files);
+      let totalSize = 0;
+      let oldest: Date | null = null;
+      let newest: Date | null = null;
+      for (const info of infos) {
+        totalSize += info.size;
+        if (!oldest || info.mtime < oldest) oldest = info.mtime;
+        if (!newest || info.mtime > newest) newest = info.mtime;
+      }
+      return {
+        totalFiles: infos.length,
+        totalSizeBytes: totalSize,
+        oldestFile: oldest,
+        newestFile: newest,
+      };
+    } catch {
+      return {
+        totalFiles: 0,
+        totalSizeBytes: 0,
+        oldestFile: null,
+        newestFile: null,
+      };
+    }
+  }
+
+  async cleanup(): Promise<number> {
+    if (this.cleanupRunning) return 0;
+    this.cleanupRunning = true;
+    try {
+      return await this.runCleanup();
+    } finally {
+      this.cleanupRunning = false;
+      this.lastSizeCheckAt = Date.now();
+    }
+  }
+
+  private async runCleanup(): Promise<number> {
+    let removed = 0;
+    try {
+      const files = await readdir(this.cacheDir);
+      const infos = await this.batchStat(files);
+      const now = Date.now();
+      const survivors: FileInfo[] = [];
+      for (const info of infos) {
+        if (now - info.mtime.getTime() > this.maxAgeMs) {
+          if (await this.unlinkSafe(info.path)) removed++;
+          continue;
+        }
+        survivors.push(info);
+      }
+      let total = survivors.reduce((sum, f) => sum + f.size, 0);
+      if (total > this.maxBytes) {
+        survivors.sort((a, b) => a.mtime.getTime() - b.mtime.getTime());
+        const target = this.maxBytes * CLEANUP_TARGET_RATIO;
+        for (const file of survivors) {
+          if (total <= target) break;
+          if (await this.unlinkSafe(file.path)) {
+            total -= file.size;
+            removed++;
+          }
+        }
+      }
+      this.currentSizeBytes = total;
+      if (removed > 0) {
+        this.logger.info(

@@ -98,3 +98,73 @@ export class GoogleCloudTtsClient {
       init: { headers: this.buildHeaders() },
       timeoutMs: this.listVoicesTimeoutMs,
       label: "listVoices",
+      parse: async (response) => {
+        const data = (await response.json()) as VoiceListResponse;
+        return data.voices ?? [];
+      },
+    });
+    return result ?? [];
+  }
+
+  private buildHeaders(
+    extra: Record<string, string> = {},
+  ): Record<string, string> {
+    return { "x-goog-api-key": this.apiKey, ...extra };
+  }
+
+  private async executeRequest<T>(opts: {
+    url: string;
+    init: RequestInit;
+    timeoutMs: number;
+    label: string;
+    parse: (response: Response) => Promise<T>;
+  }): Promise<T | null> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), opts.timeoutMs);
+    if (typeof timer.unref === "function") timer.unref();
+    try {
+      const response = await fetch(opts.url, {
+        ...opts.init,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const text = await safeReadText(response);
+        this.logger.error(
+          `${opts.label} failed: ${response.status} - ${text}`,
+        );
+        return null;
+      }
+      return await opts.parse(response);
+    } catch (err) {
+      if (isAbortError(err)) {
+        this.logger.error(
+          `${opts.label} timed out after ${opts.timeoutMs}ms`,
+        );
+      } else {
+        this.logger.error(`${opts.label} threw`, err);
+      }
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+async function safeReadText(response: Response): Promise<string> {
+  try {
+    return await response.text();
+  } catch {
+    return "<unreadable body>";
+  }
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.name === "AbortError" || err.name === "TimeoutError")
+  );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}

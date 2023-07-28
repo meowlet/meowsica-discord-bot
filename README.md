@@ -1,14 +1,15 @@
 # meowsica-discord-bot
 
-A Discord voice bot with /join, /leave, and i18n support (en, vi).
+A Discord TTS bot with per-guild and per-user voice preferences.
 
-## Commands
+## Features
 
-- `/ping`
-- `/help`
-- `/join`
-- `/leave`
+- Slash commands
+- Multi-language (en, vi)
+- Google Cloud Text-to-Speech
+- Redis audio cache
+- SQLite settings store
 
 ## Version
 
-0.2.0
+1.0.0

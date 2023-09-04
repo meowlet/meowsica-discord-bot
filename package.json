@@ -1,12 +1,12 @@
 {
   "name": "meowsica-discord-bot",
   "version": "1.0.0",
-  "description": "Discord TTS bot with i18n, persistence, redis cache, and google cloud voices",
-  "main": "dist/index.js",
+  "type": "module",
+  "description": "Discord TTS bot running on bun",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "deploy": "bun run src/deploy.ts",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\""
   },
@@ -20,9 +20,8 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.4",
-    "@types/node": "^20.4.2",
-    "prettier": "^3.0.0",
-    "ts-node": "^10.9.1",
+    "@types/bun": "latest",
+    "prettier": "^3.0.1",
     "typescript": "^5.1.6"
   }
 }

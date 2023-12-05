@@ -38,3 +38,11 @@ export interface AppContext {
   readonly voiceCatalog: WavenetVoiceCatalog;
   readonly basicProvider: BasicTtsProvider;
   readonly wavenetProvider: WavenetTtsProvider;
+  readonly voice: VoiceManager;
+  readonly player: PlayerManager;
+  readonly commands: readonly Command[];
+  readonly componentHandlers: readonly ComponentHandler[];
+  readonly client: BotClient;
+  readonly router: InteractionRouter;
+  readonly readyHandler: ReadyHandler;
+}

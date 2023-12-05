@@ -78,3 +78,121 @@ export async function createAppContext(): Promise<AppContext> {
   const ttsCache = new TtsCacheService({ logger, shardId: resolveShardId() });
   const voiceCatalog = new WavenetVoiceCatalog({
     client: googleCloudTts,
+    logger,
+  });
+  const basicProvider = new BasicTtsProvider({ logger, cache: ttsCache });
+  const wavenetProvider = new WavenetTtsProvider({
+    client: googleCloudTts,
+    cache: ttsCache,
+    usage,
+    logger,
+  });
+  const voice = new VoiceManager({
+    logger,
+    timeoutMs: config.bot.voiceTimeoutMinutes * Timeouts.OneMinute,
+  });
+  const player = new PlayerManager({
+    logger,
+    userPrefs,
+    basic: basicProvider,
+    wavenet: wavenetProvider,
+    voice,
+  });
+  voice.setLeaveListener((guildId) => player.cleanup(guildId));
+  const commands: Command[] = [
+    new PingCommand({ localeResolver }),
+    new HelpCommand({ localeResolver, getCommands: () => commands }),
+    new JoinCommand({ localeResolver, voice }),
+    new LeaveCommand({ localeResolver, voice }),
+    new SayCommand({
+      localeResolver,
+      voice,
+      player,
+      commandLogger,
+      usage,
+    }),
+    new SkipCommand({ localeResolver, voice, player }),
+    new StopCommand({ localeResolver, voice, player }),
+    new QueueCommand({ localeResolver, voice, player }),
+    new VoiceCommand({ localeResolver, userPrefs }),
+    new LanguageCommand({ localeResolver, userPrefs, guildSettings }),
+    new ProfileCommand({ localeResolver, userPrefs, usage }),
+  ];
+  const componentHandlers: ComponentHandler[] = [
+    new VoiceSettingsHandler({
+      logger,
+      userPrefs,
+      localeResolver,
+      voiceCatalog,
+    }),
+    new LanguageSettingsHandler({
+      logger,
+      userPrefs,
+      guildSettings,
+      localeResolver,
+    }),
+  ];
+  const client = new BotClient({ token: config.bot.token });
+  const router = new InteractionRouter({
+    logger,
+    commands,
+    componentHandlers,
+    localeResolver,
+    commandLogger,
+    interactionContext,
+  });
+  const readyHandler = new ReadyHandler({
+    logger,
+    presence: config.bot.presence,
+    cache: ttsCache,
+    voiceCatalog,
+    player,
+  });
+  return {
+    config,
+    logger,
+    interactionContext,
+    db,
+    redis,
+    googleCloudTts,
+    localeResolver,
+    userPrefs,
+    guildSettings,
+    usageRepo,
+    usage,
+    commandLogger,
+    ttsCache,
+    voiceCatalog,
+    basicProvider,
+    wavenetProvider,
+    voice,
+    player,
+    commands,
+    componentHandlers,
+    client,
+    router,
+    readyHandler,
+  };
+}
+
+function resolveShardId(): number | null {
+  const raw = process.env["SHARDS"] ?? process.env["SHARD_ID"];
+  if (raw === undefined) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+async function connectRedis(
+  config: { enabled: boolean; url: string },
+  logger: Logger,
+): Promise<RedisClient | null> {
+  if (!config.enabled) return null;
+  const client = new RedisClient({ url: config.url, logger });
+  try {
+    await client.connect();
+    return client;
+  } catch (err) {
+    logger.warn("redis connection failed; continuing without cache", err);
+    return null;
+  }
+}

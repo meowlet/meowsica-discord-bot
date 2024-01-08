@@ -2,7 +2,6 @@
   "name": "meowsica-discord-bot",
   "version": "1.0.0",
   "type": "module",
-  "description": "Discord TTS bot running on bun",
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts",
@@ -11,9 +10,9 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\""
   },
   "dependencies": {
-    "@discordjs/voice": "^0.16.0",
-    "better-sqlite3": "^8.4.0",
-    "discord.js": "^14.11.0",
+    "@discordjs/voice": "^0.17.0",
+    "better-sqlite3": "^9.0.0",
+    "discord.js": "^14.12.1",
     "dotenv": "^16.3.1",
     "ioredis": "^5.3.2",
     "sodium-native": "^4.0.4"
@@ -21,7 +20,10 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.4",
     "@types/bun": "latest",
-    "prettier": "^3.0.1",
+    "prettier": "^3.0.3",
     "typescript": "^5.1.6"
+  },
+  "patchedDependencies": {
+    "@discordjs/ws@1.2.3": "patches/@discordjs%2Fws@1.2.3.patch"
   }
 }

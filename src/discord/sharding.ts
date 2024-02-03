@@ -28,3 +28,29 @@ export class ShardingFactory {
       totalShards:
         this.sharding.shardCount === "auto" ? "auto" : this.sharding.shardCount,
       respawn: true,
+      execArgv: ["--conditions=bun"],
+    };
+    const manager = new ShardingManager(this.botFile, options);
+    this.attachListeners(manager);
+    return manager;
+  }
+
+  async start(manager: ShardingManager): Promise<void> {
+    await manager.spawn({ timeout: 60_000, delay: 5_000 });
+  }
+
+  private attachListeners(manager: ShardingManager): void {
+    manager.on("shardCreate", (shard) => {
+      const id = shard.id;
+      shard.on("ready", () => this.logger.info(`shard ${id} ready`));
+      shard.on("disconnect", () =>
+        this.logger.warn(`shard ${id} disconnected`),
+      );
+      shard.on("death", (proc) => {
+        const pid = "pid" in proc ? proc.pid : "unknown";
+        this.logger.error(`shard ${id} died pid=${pid}`);
+      });
+      shard.on("error", (err) => this.logger.error(`shard ${id} error`, err));
+    });
+  }
+}

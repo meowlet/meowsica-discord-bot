@@ -178,3 +178,75 @@ export class TtsCacheService {
       this.currentSizeBytes = total;
       if (removed > 0) {
         this.logger.info(
+          `cleaned ${removed} cache files (${total} bytes remaining)`,
+        );
+      }
+    } catch (err) {
+      this.logger.error("cleanup failed", err);
+    }
+    return removed;
+  }
+
+  private async computeOnDiskSize(): Promise<number> {
+    try {
+      const files = await readdir(this.cacheDir);
+      const infos = await this.batchStat(files);
+      return infos.reduce((sum, f) => sum + f.size, 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  private async batchStat(files: readonly string[]): Promise<FileInfo[]> {
+    const result: FileInfo[] = [];
+    for (let i = 0; i < files.length; i += STAT_BATCH_SIZE) {
+      const slice = files.slice(i, i + STAT_BATCH_SIZE);
+      const settled = await Promise.allSettled(
+        slice.map(async (file) => {
+          const path = join(this.cacheDir, file);
+          const info = await stat(path);
+          return { path, mtime: info.mtime, size: info.size };
+        }),
+      );
+      for (const entry of settled) {
+        if (entry.status === "fulfilled") result.push(entry.value);
+      }
+    }
+    return result;
+  }
+
+  private async sizeOf(path: string): Promise<number> {
+    try {
+      const info = await stat(path);
+      return info.size;
+    } catch {
+      return 0;
+    }
+  }
+
+  private async unlinkSafe(path: string): Promise<boolean> {
+    try {
+      await unlink(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private pathFor(key: CacheKey): string {
+    const hash = createHash("md5")
+      .update(
+        [
+          key.text,
+          key.voice ?? "default",
+          key.speed.toFixed(2),
+          key.pitch.toFixed(2),
+          key.provider,
+        ].join("|"),
+      )
+      .digest("hex");
+    const ext =
+      key.provider === "wavenet" ? WAVENET_AUDIO_EXT : BASIC_AUDIO_EXT;
+    return join(this.cacheDir, `${hash}${ext}`);
+  }
+}

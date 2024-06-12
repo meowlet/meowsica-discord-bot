@@ -1,20 +1,53 @@
-import Database from 'better-sqlite3';
+import { eq, sql } from "drizzle-orm";
+import type { Db } from "../../../infra/db.ts";
+import { guildSettings, type GuildSettingsRow } from "../schema.ts";
 
-const db = new Database('data/settings.db');
-db.exec(`CREATE TABLE IF NOT EXISTS guild_settings (
-  guild_id TEXT PRIMARY KEY,
-  locale TEXT
-)`);
-
-export function getGuildLocale(guildId: string): string | null {
-  const row = db.prepare('SELECT locale FROM guild_settings WHERE guild_id = ?').get(guildId) as
-    | { locale: string | null }
-    | undefined;
-  return row?.locale ?? null;
+export interface GuildSettings {
+  readonly guildId: string;
+  readonly uiLocale: string | null;
+  readonly ttsLanguage: string | null;
 }
 
-export function setGuildLocale(guildId: string, locale: string): void {
-  db.prepare(
-    'INSERT INTO guild_settings (guild_id, locale) VALUES (?, ?) ON CONFLICT(guild_id) DO UPDATE SET locale = excluded.locale'
-  ).run(guildId, locale);
+export type GuildSettingsFields = Partial<typeof guildSettings.$inferInsert>;
+
+export class GuildSettingsDbAdapter {
+  private readonly db: Db;
+
+  constructor(db: Db) {
+    this.db = db;
+  }
+
+  async findById(guildId: string): Promise<GuildSettings | null> {
+    const rows = await this.db
+      .select()
+      .from(guildSettings)
+      .where(eq(guildSettings.guildId, guildId))
+      .limit(1);
+    const row = rows[0];
+    return row ? toSettings(row) : null;
+  }
+
+  async upsert(guildId: string, fields: GuildSettingsFields): Promise<void> {
+    await this.db
+      .insert(guildSettings)
+      .values({ guildId, ...fields })
+      .onConflictDoUpdate({
+        target: guildSettings.guildId,
+        set: { ...fields, updatedAt: sql`NOW()` },
+      });
+  }
+
+  async deleteById(guildId: string): Promise<void> {
+    await this.db
+      .delete(guildSettings)
+      .where(eq(guildSettings.guildId, guildId));
+  }
+}
+
+function toSettings(row: GuildSettingsRow): GuildSettings {
+  return {
+    guildId: row.guildId,
+    uiLocale: row.uiLocale,
+    ttsLanguage: row.ttsLanguage,
+  };
 }

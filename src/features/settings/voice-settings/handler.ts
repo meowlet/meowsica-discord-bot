@@ -178,3 +178,164 @@ export class VoiceSettingsHandler implements ComponentHandler {
       interaction,
       locale,
       undefined,
+      footerKey,
+      footerParams,
+    );
+  }
+
+  private async handleProviderSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    const value = interaction.values[0];
+    if (value !== "basic" && value !== "wavenet") {
+      await this.replyError(interaction, locale);
+      return;
+    }
+    const provider = value as TtsProvider;
+    const userId = interaction.user.id;
+    if (provider === "basic") {
+      await this.userPrefs.upsertFields(userId, {
+        ttsProvider: "basic",
+        ttsVoiceId: null,
+      });
+    } else {
+      const prefs = await this.userPrefs.getOrDefault(userId);
+      const lang = prefs.tts.language ?? DEFAULT_LANGUAGE_CLOUD;
+      const voices = await this.voiceCatalog.getVoicesForLanguage(lang);
+      await this.userPrefs.upsertFields(userId, {
+        ttsProvider: "wavenet",
+        ttsVoiceId: voices[0]?.value ?? null,
+      });
+    }
+    const providerLabel =
+      provider === "wavenet"
+        ? t(locale, "commands.voice.config.providerWavenetLabel")
+        : t(locale, "commands.voice.config.providerBasicLabel");
+    await this.refreshConfig(
+      interaction,
+      locale,
+      undefined,
+      "commands.voice.config.providerUpdated",
+      { provider: providerLabel },
+    );
+  }
+
+  private async handleVariantSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    const value = interaction.values[0];
+    if (!value || value === "none") {
+      await this.replyError(interaction, locale);
+      return;
+    }
+    await this.userPrefs.setTtsVoice(interaction.user.id, value);
+    const variant = value.split("-").pop() ?? "";
+    await this.refreshConfig(
+      interaction,
+      locale,
+      undefined,
+      "commands.voice.config.variantUpdated",
+      { variant: `Wavenet ${variant}` },
+    );
+  }
+
+  private async handleSpeedSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    const value = interaction.values[0];
+    if (!value) {
+      await this.replyError(interaction, locale);
+      return;
+    }
+    const speed = Number.parseFloat(value);
+    if (Number.isNaN(speed)) {
+      await this.replyError(interaction, locale);
+      return;
+    }
+    await this.userPrefs.setTtsSpeed(interaction.user.id, speed);
+    const speedLabel = formatSpeedLabel(speed, locale);
+    await this.refreshConfig(
+      interaction,
+      locale,
+      undefined,
+      "commands.voice.config.speedUpdated",
+      { speed: speedLabel },
+    );
+  }
+
+  private async handlePitchSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    const value = interaction.values[0];
+    if (!value) {
+      await this.replyError(interaction, locale);
+      return;
+    }
+    const pitch = Number.parseFloat(value);
+    if (Number.isNaN(pitch)) {
+      await this.replyError(interaction, locale);
+      return;
+    }
+    await this.userPrefs.setTtsPitch(interaction.user.id, pitch);
+    const pitchLabel = formatPitchLabel(pitch, locale);
+    await this.refreshConfig(
+      interaction,
+      locale,
+      undefined,
+      "commands.voice.config.pitchUpdated",
+      { pitch: pitchLabel },
+    );
+  }
+
+  private async refreshConfig(
+    interaction: StringSelectMenuInteraction,
+    locale: Locale,
+    state?: ConfigState,
+    footerKey?: string | null,
+    footerParams?: Record<string, string>,
+  ): Promise<void> {
+    const prefs = await this.userPrefs.getOrDefault(interaction.user.id);
+    const { embed, rows } = await buildVoiceConfigInterface({
+      prefs,
+      locale,
+      voiceCatalog: this.voiceCatalog,
+      state,
+    });
+    if (footerKey) {
+      embed.setFooter({ text: t(locale, footerKey, footerParams) });
+    }
+    await interaction.update({ embeds: [embed], components: rows });
+  }
+
+  private async replyError(
+    interaction: StringSelectMenuInteraction,
+    locale: Locale,
+  ): Promise<void> {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+  }
+}
+
+function formatSpeedLabel(speed: number, locale: Locale): string {
+  if (speed < 0.5) return t(locale, "commands.voice.config.speedSlow");
+  if (Math.abs(speed - 1.0) < 0.01) {
+    return t(locale, "commands.voice.config.speedNormal");
+  }
+  return `${speed}x`;
+}
+
+function formatPitchLabel(pitch: number, locale: Locale): string {
+  if (pitch < -2.5) return t(locale, "commands.voice.config.pitchDeep");
+  if (pitch < 0) return t(locale, "commands.voice.config.pitchMediumLow");
+  if (Math.abs(pitch) < 0.01) {
+    return t(locale, "commands.voice.config.pitchNormal");
+  }
+  if (pitch < 5) return t(locale, "commands.voice.config.pitchMediumHigh");
+  return t(locale, "commands.voice.config.pitchHigh");
+}

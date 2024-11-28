@@ -178,3 +178,82 @@ function buildVariantSelect(
   let options: StringSelectMenuOptionBuilder[] = [];
   if (voices.length > 0) {
     options = voices.slice(0, 25).map((voice) => {
+      const variant = voice.value.split("-").pop() ?? "";
+      const genderLabel =
+        voice.gender === "FEMALE"
+          ? t(locale, "common.gender.female")
+          : voice.gender === "MALE"
+            ? t(locale, "common.gender.male")
+            : t(locale, "common.gender.neutral");
+      return new StringSelectMenuOptionBuilder()
+        .setLabel(`Wavenet ${variant}`)
+        .setDescription(genderLabel)
+        .setValue(voice.value)
+        .setDefault(voice.value === currentVoice);
+    });
+  }
+  if (options.length === 0) {
+    options.push(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(t(locale, "commands.voice.config.variantNotAvailable"))
+        .setDescription(t(locale, "commands.voice.config.variantNoVoices"))
+        .setValue("none"),
+    );
+  }
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(VOICE_CUSTOM_IDS.variantSelect)
+    .setPlaceholder(t(locale, "commands.voice.config.variantPlaceholder"))
+    .addOptions(options);
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+function buildSpeedSelect(
+  currentSpeed: number,
+  isWavenetMode: boolean,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const source = isWavenetMode ? WAVENET_SPEED_OPTIONS : BASIC_SPEED_OPTIONS;
+  const options = source.map((opt) => {
+    const builder = new StringSelectMenuOptionBuilder()
+      .setLabel(t(locale, `commands.voice.config.${opt.label}`))
+      .setValue(opt.value);
+    if (opt.description) {
+      builder.setDescription(
+        t(locale, `commands.voice.config.${opt.description}`),
+      );
+    }
+    if (!isWavenetMode) {
+      const isSlowMode = currentSpeed <= 0.25;
+      const isThisSlowOption = opt.value === "0.25";
+      builder.setDefault(isSlowMode === isThisSlowOption);
+    } else {
+      const numeric = Number.parseFloat(opt.value);
+      builder.setDefault(Math.abs(currentSpeed - numeric) < 0.01);
+    }
+    return builder;
+  });
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(VOICE_CUSTOM_IDS.speedSelect)
+    .setPlaceholder(t(locale, "commands.voice.config.speedPlaceholder"))
+    .addOptions(options);
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+function buildPitchSelect(
+  currentPitch: number,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const options = PITCH_OPTIONS.map((opt) => {
+    const numeric = Number.parseFloat(opt.value);
+    return new StringSelectMenuOptionBuilder()
+      .setLabel(t(locale, `commands.voice.config.${opt.label}`))
+      .setDescription(t(locale, `commands.voice.config.${opt.description}`))
+      .setValue(opt.value)
+      .setDefault(Math.abs(currentPitch - numeric) < 0.01);
+  });
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(VOICE_CUSTOM_IDS.pitchSelect)
+    .setPlaceholder(t(locale, "commands.voice.config.pitchPlaceholder"))
+    .addOptions(options);
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}

@@ -58,3 +58,67 @@ export function buildLanguageDashboard(
         name: t(locale, "commands.language.dashboard.serverLanguage"),
         value: data.serverLocale
           ? `${serverDisplay.flag} ${serverDisplay.name}`
+          : t(locale, "commands.language.dashboard.notSet"),
+        inline: false,
+      },
+    )
+    .setFooter({
+      text: t(locale, "commands.language.dashboard.priorityNote"),
+    });
+  const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(LANGUAGE_CUSTOM_IDS.configButton)
+      .setLabel(t(locale, "commands.language.buttons.configure"))
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(LANGUAGE_CUSTOM_IDS.closeButton)
+      .setLabel(t(locale, "commands.language.buttons.close"))
+      .setStyle(ButtonStyle.Secondary),
+  );
+  return { embed, buttons };
+}
+
+export function buildUserLanguageSelect(
+  current: Locale | null,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const options = LOCALE_OPTIONS.map((opt) =>
+    new StringSelectMenuOptionBuilder()
+      .setLabel(opt.name)
+      .setDescription(opt.nativeName)
+      .setValue(opt.code)
+      .setEmoji(opt.flag)
+      .setDefault(opt.code === current),
+  );
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(LANGUAGE_CUSTOM_IDS.userSelect)
+    .setPlaceholder(t(locale, "commands.language.config.userPlaceholder"))
+    .addOptions(options);
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+export function buildServerLanguageSelect(
+  current: Locale | null,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const options = LOCALE_OPTIONS.map((opt) =>
+    new StringSelectMenuOptionBuilder()
+      .setLabel(opt.name)
+      .setDescription(opt.nativeName)
+      .setValue(opt.code)
+      .setEmoji(opt.flag)
+      .setDefault(opt.code === current),
+  );
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(LANGUAGE_CUSTOM_IDS.serverSelect)
+    .setPlaceholder(t(locale, "commands.language.config.serverPlaceholder"))
+    .addOptions(options);
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+export function buildConfigEmbed(locale: Locale): EmbedBuilder {
+  return new EmbedBuilder()
+    .setTitle(t(locale, "commands.language.config.title"))
+    .setDescription(t(locale, "commands.language.config.subtitle"))
+    .setColor(Colors.Primary);
+}

@@ -1,0 +1,48 @@
+import type { AppEnvConfig } from "../config/index.ts";
+import type { Logger } from "../shared/logger.ts";
+import type { InteractionContextService } from "../shared/interaction-context.ts";
+import type { Db } from "../infra/db.ts";
+import type { RedisClient } from "../infra/redis.ts";
+import type { GoogleCloudTtsClient } from "../infra/google-cloud-tts.ts";
+import type { LocaleResolver } from "../features/settings/locale-resolver.ts";
+import type { UserPrefsRepository } from "../features/settings/user-prefs-repo.ts";
+import type { GuildSettingsRepository } from "../features/settings/guild-settings-repo.ts";
+import type { UsageRepository } from "../features/quota/usage-repo.ts";
+import type { UsageService } from "../features/quota/usage-service.ts";
+import type { CommandLoggerService } from "../features/logs/command-logger-service.ts";
+import type { TtsCacheService } from "../features/tts/cache-service.ts";
+import type { WavenetVoiceCatalog } from "../features/tts/voice-catalog.ts";
+import type { BasicTtsProvider } from "../features/tts/basic-provider.ts";
+import type { WavenetTtsProvider } from "../features/tts/wavenet-provider.ts";
+import type { PlayerManager } from "../features/tts/player-manager.ts";
+import type { VoiceManager } from "../features/voice/voice-manager.ts";
+import type { Command, ComponentHandler } from "../shared/command.ts";
+import type { BotClient } from "../discord/client.ts";
+import type { InteractionRouter } from "../discord/interaction-router.ts";
+import type { ReadyHandler } from "../discord/ready-handler.ts";
+
+export interface AppContext {
+  readonly config: AppEnvConfig;
+  readonly logger: Logger;
+  readonly interactionContext: InteractionContextService;
+  readonly db: Db;
+  readonly redis: RedisClient | null;
+  readonly googleCloudTts: GoogleCloudTtsClient | null;
+  readonly localeResolver: LocaleResolver;
+  readonly userPrefs: UserPrefsRepository;
+  readonly guildSettings: GuildSettingsRepository;
+  readonly usageRepo: UsageRepository;
+  readonly usage: UsageService;
+  readonly commandLogger: CommandLoggerService;
+  readonly ttsCache: TtsCacheService;
+  readonly voiceCatalog: WavenetVoiceCatalog;
+  readonly basicProvider: BasicTtsProvider;
+  readonly wavenetProvider: WavenetTtsProvider;
+  readonly voice: VoiceManager;
+  readonly player: PlayerManager;
+  readonly commands: readonly Command[];
+  readonly componentHandlers: readonly ComponentHandler[];
+  readonly client: BotClient;
+  readonly router: InteractionRouter;
+  readonly readyHandler: ReadyHandler;
+}

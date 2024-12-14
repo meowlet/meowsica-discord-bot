@@ -1,6 +1,6 @@
 # meowsica-discord-bot
 
-A Discord TTS bot with per-guild and per-user voice preferences.
+A Discord TTS bot on bun + postgres + redis.
 
 ## Features
 
@@ -8,8 +8,10 @@ A Discord TTS bot with per-guild and per-user voice preferences.
 - Multi-language (en, vi)
 - Google Cloud Text-to-Speech
 - Redis audio cache
-- SQLite settings store
+- Postgres via drizzle-orm
+- Sharding (Discord.js ShardingManager)
+- Per-user voice preferences
 
 ## Version
 
-1.0.0
+1.5.0

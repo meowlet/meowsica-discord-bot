@@ -98,3 +98,131 @@ export class LanguageSettingsHandler implements ComponentHandler {
       buildUserLanguageSelect(userLocale, locale),
     ];
     if (guildId && hasManageGuild) {
+      rows.push(buildServerLanguageSelect(serverLocale, locale));
+    }
+    await interaction.reply({
+      embeds: [embed],
+      components: rows,
+      flags: MessageFlags.Ephemeral,
+    });
+  }
+
+  private async handleCloseButton(
+    interaction: ButtonInteraction,
+  ): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    const ownerId = interaction.message.interactionMetadata?.user?.id;
+    if (!ownerId || ownerId !== interaction.user.id) {
+      await interaction.reply({
+        content: t(locale, "commands.language.buttons.notOwner"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    try {
+      await interaction.message.delete();
+    } catch {
+      await interaction.reply({
+        content: t(locale, "common.ok"),
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+  }
+
+  private async handleUserSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    const userId = interaction.user.id;
+    const value = interaction.values[0];
+    if (!value || !isSupportedLocale(value)) {
+      const locale = await this.localeResolver.resolve(interaction);
+      await interaction.reply({
+        content: t(locale, "common.error"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const selected = value as Locale;
+    await this.userPrefs.setUiLocale(userId, selected);
+    const guildId = interaction.guildId;
+    const hasManageGuild =
+      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ??
+      false;
+    const serverLocale = await this.getServerLocale(guildId);
+    const embed = buildConfigEmbed(selected);
+    const rows: ActionRowBuilder<StringSelectMenuBuilder>[] = [
+      buildUserLanguageSelect(selected, selected),
+    ];
+    if (guildId && hasManageGuild) {
+      rows.push(buildServerLanguageSelect(serverLocale, selected));
+    }
+    const display = getLocaleDisplay(selected);
+    embed.setFooter({
+      text: t(selected, "commands.language.config.userUpdated", {
+        language: display.name,
+      }),
+    });
+    await interaction.update({ embeds: [embed], components: rows });
+  }
+
+  private async handleServerSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<void> {
+    const locale = await this.localeResolver.resolve(interaction);
+    const guildId = interaction.guildId;
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      await interaction.reply({
+        content: t(locale, "commands.language.config.noPermission"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    if (!guildId) {
+      await interaction.reply({
+        content: t(locale, "commands.language.config.serverOnly"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const value = interaction.values[0];
+    if (!value || !isSupportedLocale(value)) {
+      await interaction.reply({
+        content: t(locale, "common.error"),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const selected = value as Locale;
+    await this.guildSettings.setUiLocale(guildId, selected);
+    const userPrefs = await this.userPrefs.get(interaction.user.id);
+    const userLocale =
+      userPrefs?.uiLocale && isSupportedLocale(userPrefs.uiLocale)
+        ? (userPrefs.uiLocale as Locale)
+        : null;
+    const embed = buildConfigEmbed(locale);
+    const rows: ActionRowBuilder<StringSelectMenuBuilder>[] = [
+      buildUserLanguageSelect(userLocale, locale),
+      buildServerLanguageSelect(selected, locale),
+    ];
+    const display = getLocaleDisplay(selected);
+    embed.setFooter({
+      text: t(locale, "commands.language.config.serverUpdated", {
+        language: display.name,
+      }),
+    });
+    await interaction.update({ embeds: [embed], components: rows });
+  }
+
+  private async getServerLocale(
+    guildId: string | null,
+  ): Promise<Locale | null> {
+    if (!guildId) return null;
+    const settings = await this.guildSettings.get(guildId);
+    if (!settings?.uiLocale) return null;
+    if (isSupportedLocale(settings.uiLocale))
+      return settings.uiLocale as Locale;
+    return null;
+  }
+}
+
+export { buildLanguageDashboard };

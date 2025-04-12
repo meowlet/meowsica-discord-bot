@@ -78,3 +78,48 @@ export class MultiTierCache<T> {
     if (this.memory.size >= this.memoryMaxEntries) {
       const oldestKey = this.memory.keys().next().value;
       if (oldestKey !== undefined) this.memory.delete(oldestKey);
+    }
+    this.memory.set(key, {
+      value,
+      expiresAt: Date.now() + this.memoryTtlMs,
+    });
+  }
+
+  private async readRedis(key: string): Promise<T | null | undefined> {
+    if (!this.redis?.isConnected()) return undefined;
+    const raw = await this.redis.getJson<T | NegativeMarker>(
+      this.redisKey(key),
+    );
+    if (raw === null) return undefined;
+    if (isNegativeMarker(raw)) return null;
+    return raw;
+  }
+
+  private async writeRedis(key: string, value: T | null): Promise<void> {
+    if (!this.redis?.isConnected()) return;
+    const payload = value ?? NEGATIVE_MARKER;
+    await this.redis.setJson(
+      this.redisKey(key),
+      payload,
+      this.redisTtlSeconds,
+    );
+  }
+
+  private async deleteRedis(key: string): Promise<void> {
+    if (!this.redis?.isConnected()) return;
+    await this.redis.del(this.redisKey(key));
+  }
+
+  private redisKey(key: string): string {
+    return `${this.keyPrefix}${key}`;
+  }
+}
+
+function isNegativeMarker(value: unknown): value is NegativeMarker {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "__none" in value &&
+    (value as NegativeMarker).__none === true
+  );
+}

@@ -1,32 +1,31 @@
 {
   "name": "meowsica-discord-bot",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
+    "start:direct": "bun run src/bot.ts",
     "dev": "bun --watch src/index.ts",
     "deploy": "bun run src/deploy.ts",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "test": "bun test",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\""
   },
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
-    "@snazzah/davey": "^0.1.5",
-    "discord.js": "^14.15.3",
-    "drizzle-orm": "^0.40.0",
-    "dotenv": "^16.4.5",
+    "@snazzah/davey": "^0.1.8",
+    "@types/node": "^22.0.0",
+    "discord.js": "^14.16.3",
+    "drizzle-orm": "^0.44.0",
     "glob": "^11.0.0",
-    "ioredis": "^5.4.1",
-    "sodium-native": "^4.3.0",
+    "sodium-native": "^5.0.0",
     "strip-comments": "^2.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "drizzle-kit": "^0.25.0",
-    "prettier": "^3.4.0",
-    "typescript": "^5.5.4"
+    "drizzle-kit": "^0.30.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.6.3"
   },
   "patchedDependencies": {
     "@discordjs/ws@1.2.3": "patches/@discordjs%2Fws@1.2.3.patch"

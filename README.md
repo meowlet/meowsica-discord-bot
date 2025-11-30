@@ -1,17 +1,17 @@
 # meowsica-discord-bot
 
-A Discord TTS bot on bun + postgres + redis.
+A Discord TTS bot running on bun with Wavenet voices, quota system, and Loki-friendly logging.
 
 ## Features
 
 - Slash commands
 - Multi-language (en, vi)
-- Google Cloud Text-to-Speech
-- Redis audio cache
+- Google Cloud Wavenet TTS
+- MultiTierCache (L1 LRU + L2 Redis)
 - Postgres via drizzle-orm
-- Sharding (Discord.js ShardingManager)
-- Per-user voice preferences
+- Per-user quota system
+- Sharding
 
 ## Version
 
-1.5.0
+2.0.0

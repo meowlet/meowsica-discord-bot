@@ -9,7 +9,7 @@ type TranslationObject = { [key: string]: TranslationValue };
 
 const locales: Record<Locale, TranslationObject> = { en, vi };
 
-export const DEFAULT_LOCALE: Locale = "vi";
+export const DEFAULT_LOCALE: Locale = "en";
 export const SUPPORTED_LOCALES: Locale[] = ["en", "vi"];
 
 /**
@@ -25,8 +25,13 @@ export function getTranslations(locale: Locale | string): TranslationObject {
 /**
  * Get a nested translation value by dot-notation path
  * Example: t("en", "commands.ping.title") => "Pong!"
+ * Supports template parameters: t("en", "greet", { name: "John" }) => "Hello, John!"
  */
-export function t(locale: Locale | string, path: string): string {
+export function t(
+  locale: Locale | string,
+  path: string,
+  params?: Record<string, string>
+): string {
   const translations = getTranslations(locale);
   const keys = path.split(".");
 
@@ -39,7 +44,16 @@ export function t(locale: Locale | string, path: string): string {
     }
   }
 
-  return typeof result === "string" ? result : path;
+  let text = typeof result === "string" ? result : path;
+
+  // Replace template parameters like {name} with provided values
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      text = text.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+    }
+  }
+
+  return text;
 }
 
 /**

@@ -45,5 +45,22 @@ export default {
           "Ngôn ngữ giọng nói server đã được đặt thành Tiếng Việt!",
       },
     },
+    join: {
+      description: "Vào kênh thoại của bạn",
+      serverOnly: "Lệnh này chỉ có thể sử dụng trong server.",
+      notInVoice: "Bạn phải ở trong kênh thoại để sử dụng lệnh này.",
+      success: "Đã vào kênh thoại",
+      joinedChannel: "Đã kết nối đến **{channel}**",
+      failed: "Không thể vào kênh thoại. Vui lòng thử lại.",
+    },
+    leave: {
+      description: "Rời khỏi kênh thoại",
+      serverOnly: "Lệnh này chỉ có thể sử dụng trong server.",
+      notConnected: "Tôi không kết nối với kênh thoại nào.",
+      notInSameChannel: "Bạn phải ở cùng kênh thoại với bot để sử dụng lệnh này.",
+      success: "Đã rời kênh thoại",
+      disconnected: "Đã ngắt kết nối khỏi kênh thoại.",
+      failed: "Không thể rời khỏi kênh thoại.",
+    },
   },
 };

@@ -3,7 +3,7 @@ import { handleCommand } from "./handlers/commandHandler.ts";
 import { botLogger } from "./utils/logger.ts";
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
 client.once(Events.ClientReady, (readyClient) => {

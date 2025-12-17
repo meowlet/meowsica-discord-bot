@@ -44,5 +44,22 @@ export default {
         serverSuccess: "Server speech language has been set to English!",
       },
     },
+    join: {
+      description: "Join your voice channel",
+      serverOnly: "This command can only be used in a server.",
+      notInVoice: "You must be in a voice channel to use this command.",
+      success: "Joined Voice Channel",
+      joinedChannel: "Connected to **{channel}**",
+      failed: "Failed to join the voice channel. Please try again.",
+    },
+    leave: {
+      description: "Leave the voice channel",
+      serverOnly: "This command can only be used in a server.",
+      notConnected: "I'm not connected to any voice channel.",
+      notInSameChannel: "You must be in the same voice channel as the bot to use this command.",
+      success: "Left Voice Channel",
+      disconnected: "Disconnected from the voice channel.",
+      failed: "Failed to leave the voice channel.",
+    },
   },
 };

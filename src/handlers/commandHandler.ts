@@ -1,4 +1,4 @@
-import type { ChatInputCommandInteraction } from "discord.js";
+import { type ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { commands } from "../commands/index.ts";
 import { commandLogger } from "../utils/logger.ts";
 
@@ -13,7 +13,7 @@ export async function handleCommand(
     commandLogger.warn(`Command not found: ${interaction.commandName}`);
     await interaction.reply({
       content: "Unknown command!",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -26,9 +26,9 @@ export async function handleCommand(
     const errorMessage = "There was an error executing this command!";
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: errorMessage, ephemeral: true });
+      await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
     } else {
-      await interaction.reply({ content: errorMessage, ephemeral: true });
+      await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
     }
   }
 }

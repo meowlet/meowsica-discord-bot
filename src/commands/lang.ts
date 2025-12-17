@@ -1,4 +1,4 @@
-import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { PermissionFlagsBits, SlashCommandBuilder, MessageFlags } from "discord.js";
 import type { Command } from "../types/command.ts";
 import {
   t,
@@ -95,7 +95,7 @@ export const lang: Command = {
     if (!SUPPORTED_LOCALES.includes(lang)) {
       await interaction.reply({
         content: t(locale, "common.error"),
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -107,7 +107,7 @@ export const lang: Command = {
       ) {
         await interaction.reply({
           content: t(locale, "commands.lang.noPermission"),
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -115,7 +115,7 @@ export const lang: Command = {
       if (!interaction.guildId) {
         await interaction.reply({
           content: t(locale, "commands.lang.serverOnly"),
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -127,7 +127,7 @@ export const lang: Command = {
         setUserLocale(interaction.user.id, lang);
         await interaction.reply({
           content: t(lang, "commands.lang.interface.userSuccess"),
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         setServerLocale(interaction.guildId!, lang);
@@ -143,7 +143,7 @@ export const lang: Command = {
         setUserVoice(interaction.user.id, lang);
         await interaction.reply({
           content: t(lang, "commands.lang.speech.userSuccess"),
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         setServerVoice(interaction.guildId!, lang);

@@ -1,7 +1,7 @@
-import { consola, createConsola } from "consola";
+import { createConsola } from "consola";
 
 export const logger = createConsola({
-  level: process.env.DEBUG ? 4 : 3, // 4 = debug, 3 = info
+  level: Bun.env["DEBUG"] ? 4 : 3, // 4 = debug, 3 = info
   formatOptions: {
     label: true,
     date: true,

@@ -3,6 +3,7 @@ import type { Command } from "../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { getLocale } from "../settings/index.ts";
 import { leaveChannel, isConnected, getConnectionChannelId } from "../voice/manager.ts";
+import { Colors } from "../constants/index.ts";
 
 export const leave: Command = {
   data: new SlashCommandBuilder()
@@ -48,14 +49,14 @@ export const leave: Command = {
       const embed = new EmbedBuilder()
         .setTitle(t(locale, "commands.leave.success"))
         .setDescription(t(locale, "commands.leave.disconnected"))
-        .setColor(0x57f287);
+        .setColor(Colors.Success);
 
       await interaction.reply({ embeds: [embed] });
     } else {
       const embed = new EmbedBuilder()
         .setTitle(t(locale, "common.error"))
         .setDescription(t(locale, "commands.leave.failed"))
-        .setColor(0xed4245);
+        .setColor(Colors.Error);
 
       await interaction.reply({ embeds: [embed] });
     }

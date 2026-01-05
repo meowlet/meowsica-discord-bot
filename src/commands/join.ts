@@ -3,6 +3,7 @@ import type { Command } from "../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { getLocale } from "../settings/index.ts";
 import { joinChannel } from "../voice/manager.ts";
+import { Colors } from "../constants/index.ts";
 
 export const join: Command = {
   data: new SlashCommandBuilder()
@@ -41,14 +42,14 @@ export const join: Command = {
         .setDescription(
           t(locale, "commands.join.joinedChannel", { channel: voiceChannel.name })
         )
-        .setColor(0x57f287);
+        .setColor(Colors.Success);
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       const embed = new EmbedBuilder()
         .setTitle(t(locale, "common.error"))
         .setDescription(t(locale, "commands.join.failed"))
-        .setColor(0xed4245);
+        .setColor(Colors.Error);
 
       await interaction.editReply({ embeds: [embed] });
     }

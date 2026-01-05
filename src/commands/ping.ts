@@ -2,6 +2,7 @@ import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { getLocale } from "../settings/index.ts";
+import { Colors } from "../constants/index.ts";
 
 export const ping: Command = {
   data: new SlashCommandBuilder()
@@ -37,7 +38,7 @@ export const ping: Command = {
           inline: true,
         }
       )
-      .setColor(0x5865f2);
+      .setColor(Colors.Primary);
 
     await interaction.editReply({
       content: "",

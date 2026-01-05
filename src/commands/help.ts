@@ -3,6 +3,7 @@ import type { Command } from "../types/command.ts";
 import { commands } from "./index.ts";
 import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
 import { getLocale } from "../settings/index.ts";
+import { Colors } from "../constants/index.ts";
 
 export const help: Command = {
   data: new SlashCommandBuilder()
@@ -14,7 +15,7 @@ export const help: Command = {
 
     const embed = new EmbedBuilder()
       .setTitle(t(locale, "commands.help.title"))
-      .setColor(0x5865f2)
+      .setColor(Colors.Primary)
       .setDescription(t(locale, "commands.help.subtitle"))
       .addFields(
         commands.map((cmd) => ({

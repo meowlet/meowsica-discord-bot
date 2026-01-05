@@ -7,6 +7,7 @@ import {
 } from "@discordjs/voice";
 import type { VoiceBasedChannel } from "discord.js";
 import { voiceLogger } from "../utils/logger.ts";
+import { Timeouts, Defaults } from "../constants/index.ts";
 
 interface GuildVoiceState {
   connection: VoiceConnection;
@@ -17,7 +18,10 @@ interface GuildVoiceState {
 const guildStates = new Map<string, GuildVoiceState>();
 
 // Get timeout from env (in minutes), default 5 minutes, 0 = no timeout
-const TIMEOUT_MINUTES = parseInt(Bun.env["VOICE_TIMEOUT_MINUTES"] ?? "5", 10);
+const TIMEOUT_MINUTES = parseInt(
+  Bun.env["VOICE_TIMEOUT_MINUTES"] ?? Defaults.VoiceTimeoutMinutes,
+  10
+);
 const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
 
 function startTimeout(guildId: string): void {
@@ -69,7 +73,7 @@ export async function joinChannel(
   });
 
   try {
-    await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+    await entersState(connection, VoiceConnectionStatus.Ready, Timeouts.VoiceReady);
     voiceLogger.success(`Joined voice channel: ${channel.name} (${channel.id})`);
   } catch (error) {
     connection.destroy();
@@ -91,8 +95,8 @@ export async function joinChannel(
   connection.on(VoiceConnectionStatus.Disconnected, async () => {
     try {
       await Promise.race([
-        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+        entersState(connection, VoiceConnectionStatus.Signalling, Timeouts.VoiceReconnect),
+        entersState(connection, VoiceConnectionStatus.Connecting, Timeouts.VoiceReconnect),
       ]);
     } catch {
       leaveChannel(guildId);

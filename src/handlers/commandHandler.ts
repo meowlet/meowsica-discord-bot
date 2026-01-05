@@ -1,4 +1,8 @@
-import { type ChatInputCommandInteraction, MessageFlags } from "discord.js";
+import {
+  type AutocompleteInteraction,
+  type ChatInputCommandInteraction,
+  MessageFlags,
+} from "discord.js";
 import { commands } from "../commands/index.ts";
 import { commandLogger } from "../utils/logger.ts";
 
@@ -30,5 +34,24 @@ export async function handleCommand(
     } else {
       await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
     }
+  }
+}
+
+export async function handleAutocomplete(
+  interaction: AutocompleteInteraction
+): Promise<void> {
+  const command = commandMap.get(interaction.commandName);
+
+  if (!command || !command.autocomplete) {
+    return;
+  }
+
+  try {
+    await command.autocomplete(interaction);
+  } catch (error) {
+    commandLogger.error(
+      `Error in autocomplete for /${interaction.commandName}:`,
+      error
+    );
   }
 }

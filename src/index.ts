@@ -1,5 +1,5 @@
 import { Client, Events, GatewayIntentBits } from "discord.js";
-import { handleCommand } from "./handlers/commandHandler.ts";
+import { handleCommand, handleAutocomplete } from "./handlers/commandHandler.ts";
 import { botLogger } from "./utils/logger.ts";
 
 const client = new Client({
@@ -11,8 +11,11 @@ client.once(Events.ClientReady, (readyClient) => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-  await handleCommand(interaction);
+  if (interaction.isChatInputCommand()) {
+    await handleCommand(interaction);
+  } else if (interaction.isAutocomplete()) {
+    await handleAutocomplete(interaction);
+  }
 });
 
 const token = Bun.env["DISCORD_TOKEN"];

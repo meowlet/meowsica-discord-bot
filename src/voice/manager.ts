@@ -69,7 +69,7 @@ export async function joinChannel(
     guildId: guildId,
     adapterCreator: channel.guild.voiceAdapterCreator,
     selfDeaf: false,
-    selfMute: true,
+    selfMute: false, // Must be false for TTS playback
   });
 
   try {

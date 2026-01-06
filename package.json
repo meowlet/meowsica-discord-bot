@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
+    "start:direct": "bun run src/bot.ts",
     "dev": "bun --watch src/index.ts",
     "deploy": "bun run src/deploy-commands.ts",
     "test": "bun test"
@@ -11,9 +12,12 @@
   "dependencies": {
     "@discordjs/voice": "^0.19.0",
     "@snazzah/davey": "^0.1.8",
+    "@types/node": "^25.0.3",
     "consola": "^3.4.2",
     "discord.js": "^14.16.3",
-    "sodium-native": "^5.0.10"
+    "glob": "^13.0.0",
+    "sodium-native": "^5.0.10",
+    "strip-comments": "^2.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest",

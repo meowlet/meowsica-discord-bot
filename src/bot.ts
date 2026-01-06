@@ -1,19 +1,19 @@
-/**
- * Bot Entry Point
- *
- * Creates and starts the BotClient. This file is used both in:
- * - Direct mode: Called from index.ts when sharding is disabled
- * - Sharded mode: Spawned by ShardingManager for each shard
- */
+
+
+
+
+
+
+
 
 import { BotClient } from "./structs/BotClient.ts";
 import { registerEvents } from "./events/index.ts";
 import { getConfig } from "./config/index.ts";
 import { botLogger } from "./utils/logger.ts";
 
-/**
- * Create and configure the bot client
- */
+
+
+
 export function createBot(): BotClient {
   const config = getConfig();
 
@@ -21,15 +21,15 @@ export function createBot(): BotClient {
 
   const client = new BotClient({ config });
 
-  // Register all event handlers
+  
   registerEvents(client);
 
   return client;
 }
 
-/**
- * Start the bot
- */
+
+
+
 export async function startBot(): Promise<BotClient> {
   const client = createBot();
 
@@ -42,8 +42,8 @@ export async function startBot(): Promise<BotClient> {
   }
 }
 
-// If this file is run directly (sharded mode), start the bot
-// Bun.main returns the entry file path
+
+
 if (import.meta.main) {
   const config = getConfig();
   const isSharded = process.env.SHARD_ID !== undefined;

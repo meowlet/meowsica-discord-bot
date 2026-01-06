@@ -1,9 +1,9 @@
-/**
- * TTS Player and Queue Management
- *
- * Manages per-guild TTS playback with queue support, audio streaming,
- * and integration with the voice manager.
- */
+
+
+
+
+
+
 
 import {
   createAudioPlayer,
@@ -20,33 +20,33 @@ import type { VoiceLanguageCode } from "./voices.ts";
 import { resetTimeout } from "../voice/manager.ts";
 
 export interface QueueItem {
-  /** The payloads to play (may be multiple for long messages) */
+  
   payloads: TTSPayload[];
-  /** Current payload index being played */
+  
   currentIndex: number;
-  /** User ID who requested this TTS */
+  
   userId: string;
-  /** Original message text (for display) */
+  
   originalText: string;
 }
 
 interface GuildPlayerState {
-  /** Audio player instance */
+  
   player: AudioPlayer;
-  /** Message queue */
+  
   queue: QueueItem[];
-  /** Whether currently playing */
+  
   isPlaying: boolean;
-  /** Current item being played */
+  
   currentItem: QueueItem | null;
 }
 
-/** Per-guild player states */
+
 const guildPlayers = new Map<string, GuildPlayerState>();
 
-/**
- * Get or create player state for a guild
- */
+
+
+
 function getOrCreateState(guildId: string): GuildPlayerState {
   let state = guildPlayers.get(guildId);
 
@@ -60,7 +60,7 @@ function getOrCreateState(guildId: string): GuildPlayerState {
       currentItem: null,
     };
 
-    // Handle player state changes
+    
     player.on(AudioPlayerStatus.Idle, () => {
       handlePlayerIdle(guildId);
     });
@@ -77,16 +77,16 @@ function getOrCreateState(guildId: string): GuildPlayerState {
   return state;
 }
 
-/**
- * Handle when player becomes idle (finished playing)
- */
+
+
+
 function handlePlayerIdle(guildId: string): void {
   const state = guildPlayers.get(guildId);
   if (!state) return;
 
   const currentItem = state.currentItem;
 
-  // Check if there are more payloads in the current item
+  
   if (currentItem && currentItem.currentIndex < currentItem.payloads.length - 1) {
     currentItem.currentIndex++;
     const nextPayload = currentItem.payloads[currentItem.currentIndex];
@@ -96,7 +96,7 @@ function handlePlayerIdle(guildId: string): void {
     return;
   }
 
-  // Move to next item in queue
+  
   state.currentItem = null;
   state.isPlaying = false;
 
@@ -108,9 +108,9 @@ function handlePlayerIdle(guildId: string): void {
   }
 }
 
-/**
- * Play a single TTS payload
- */
+
+
+
 async function playPayload(guildId: string, payload: TTSPayload): Promise<void> {
   const state = guildPlayers.get(guildId);
   if (!state) return;
@@ -122,7 +122,7 @@ async function playPayload(guildId: string, payload: TTSPayload): Promise<void> 
   }
 
   try {
-    // Fetch audio data from Google TTS
+    
     const response = await fetch(payload.url, {
       headers: {
         "User-Agent":
@@ -137,33 +137,33 @@ async function playPayload(guildId: string, payload: TTSPayload): Promise<void> 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Create a Node.js Readable stream from the buffer
+    
     const stream = Readable.from(buffer);
 
-    // Create audio resource from the MP3 data
+    
     const resource = createAudioResource(stream, {
       inputType: StreamType.Arbitrary,
     });
 
-    // Subscribe and play
+    
     connection.subscribe(state.player);
     state.player.play(resource);
     state.isPlaying = true;
 
-    // Reset inactivity timeout
+    
     resetTimeout(guildId);
 
     ttsLogger.debug(`Playing TTS: "${payload.text.slice(0, 30)}..."`);
   } catch (error) {
     ttsLogger.error(`Failed to play TTS payload:`, error);
-    // Move to next on error
+    
     handlePlayerIdle(guildId);
   }
 }
 
-/**
- * Start playing a queue item
- */
+
+
+
 function playItem(guildId: string, item: QueueItem): void {
   const state = guildPlayers.get(guildId);
   if (!state) return;
@@ -177,10 +177,10 @@ function playItem(guildId: string, item: QueueItem): void {
   }
 }
 
-/**
- * Add a TTS message to the queue
- * @returns true if message was queued, false if already playing immediately
- */
+
+
+
+
 export function queueTTS(
   guildId: string,
   text: string,
@@ -201,13 +201,13 @@ export function queueTTS(
     originalText: text,
   };
 
-  // If not currently playing, start immediately
+  
   if (!state.isPlaying && !state.currentItem) {
     playItem(guildId, item);
     return { queued: false, position: 0 };
   }
 
-  // Otherwise add to queue
+  
   state.queue.push(item);
   const position = state.queue.length;
 
@@ -218,9 +218,9 @@ export function queueTTS(
   return { queued: true, position };
 }
 
-/**
- * Skip the current TTS message
- */
+
+
+
 export function skipCurrent(guildId: string): boolean {
   const state = guildPlayers.get(guildId);
   if (!state || !state.isPlaying) {
@@ -231,9 +231,9 @@ export function skipCurrent(guildId: string): boolean {
   return true;
 }
 
-/**
- * Clear the entire queue and stop playback
- */
+
+
+
 export function clearQueue(guildId: string): number {
   const state = guildPlayers.get(guildId);
   if (!state) return 0;
@@ -250,9 +250,9 @@ export function clearQueue(guildId: string): number {
   return cleared;
 }
 
-/**
- * Get the current queue status
- */
+
+
+
 export function getQueueStatus(guildId: string): {
   isPlaying: boolean;
   currentItem: QueueItem | null;
@@ -278,9 +278,9 @@ export function getQueueStatus(guildId: string): {
   };
 }
 
-/**
- * Clean up player state for a guild (call when disconnecting)
- */
+
+
+
 export function cleanupPlayer(guildId: string): void {
   const state = guildPlayers.get(guildId);
   if (state) {
@@ -293,9 +293,9 @@ export function cleanupPlayer(guildId: string): void {
   }
 }
 
-/**
- * Check if bot is currently playing in a guild
- */
+
+
+
 export function isPlaying(guildId: string): boolean {
   const state = guildPlayers.get(guildId);
   return state?.isPlaying ?? false;

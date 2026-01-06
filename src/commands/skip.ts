@@ -19,7 +19,7 @@ export const skip: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    // Must be in a guild
+    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.skip.serverOnly"),
@@ -30,7 +30,7 @@ export const skip: Command = {
 
     const guildId = interaction.guild.id;
 
-    // Bot must be connected
+    
     if (!isConnected(guildId)) {
       await interaction.reply({
         content: t(locale, "commands.skip.notConnected"),
@@ -39,7 +39,7 @@ export const skip: Command = {
       return;
     }
 
-    // User must be in same channel
+    
     const member = interaction.member as GuildMember;
     const voiceChannel = member.voice.channel;
     const botChannelId = getConnectionChannelId(guildId);
@@ -52,7 +52,7 @@ export const skip: Command = {
       return;
     }
 
-    // Check if something is playing
+    
     const status = getQueueStatus(guildId);
     if (!status.isPlaying) {
       await interaction.reply({
@@ -62,7 +62,7 @@ export const skip: Command = {
       return;
     }
 
-    // Skip current
+    
     skipCurrent(guildId);
 
     const embed = new EmbedBuilder()

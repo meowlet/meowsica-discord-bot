@@ -1,25 +1,25 @@
-/**
- * Google TTS Voice Languages Configuration
- *
- * This file contains all 47 supported Google Translate TTS languages.
- * These are the VOICE languages for TTS playback, separate from UI languages.
- */
+
+
+
+
+
+
 
 export interface VoiceLanguage {
-  /** Language code used by Google TTS API */
+  
   code: string;
-  /** Human-readable language name */
+  
   name: string;
-  /** Discord emoji for the language (flag) */
+  
   emoji: string;
-  /** Native name of the language (optional) */
+  
   nativeName?: string;
 }
 
-/**
- * All supported Google TTS voice languages
- * Migrated from legacy discord-tts-bot/provider-data/google_languages.json
- */
+
+
+
+
 export const VOICE_LANGUAGES: Record<string, VoiceLanguage> = {
   af: { code: "af", name: "Afrikaans", emoji: "🇿🇦" },
   ar: { code: "ar", name: "Arabic", emoji: "🇸🇦", nativeName: "العربية" },
@@ -70,41 +70,41 @@ export const VOICE_LANGUAGES: Record<string, VoiceLanguage> = {
   vi: { code: "vi", name: "Vietnamese", emoji: "🇻🇳", nativeName: "Tiếng Việt" },
 } as const;
 
-/** Array of all voice language codes */
+
 export const VOICE_LANGUAGE_CODES = Object.keys(VOICE_LANGUAGES) as VoiceLanguageCode[];
 
-/** Type for valid voice language codes */
+
 export type VoiceLanguageCode = keyof typeof VOICE_LANGUAGES;
 
-/** Default TTS voice language */
+
 export const DEFAULT_VOICE_LANGUAGE: VoiceLanguageCode = "en";
 
-/**
- * Check if a language code is a valid TTS voice language
- */
+
+
+
 export function isValidVoiceLanguage(code: string): code is VoiceLanguageCode {
   return code in VOICE_LANGUAGES;
 }
 
-/**
- * Get voice language info by code
- */
+
+
+
 export function getVoiceLanguage(code: string): VoiceLanguage | undefined {
   return VOICE_LANGUAGES[code];
 }
 
-/**
- * Get display name for a voice language (with emoji)
- */
+
+
+
 export function getVoiceLanguageDisplay(code: string): string {
   const lang = VOICE_LANGUAGES[code];
   if (!lang) return code;
   return `${lang.emoji} ${lang.name}`;
 }
 
-/**
- * Get all voice languages sorted alphabetically by name
- */
+
+
+
 export function getSortedVoiceLanguages(): VoiceLanguage[] {
   return Object.values(VOICE_LANGUAGES).sort((a, b) =>
     a.name.localeCompare(b.name)

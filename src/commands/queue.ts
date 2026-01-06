@@ -18,7 +18,7 @@ export const queue: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    // Must be in a guild
+    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.queue.serverOnly"),
@@ -29,7 +29,7 @@ export const queue: Command = {
 
     const guildId = interaction.guild.id;
 
-    // Bot must be connected
+    
     if (!isConnected(guildId)) {
       await interaction.reply({
         content: t(locale, "commands.queue.notConnected"),
@@ -44,14 +44,14 @@ export const queue: Command = {
       .setTitle(t(locale, "commands.queue.title"))
       .setColor(Colors.Primary);
 
-    // If nothing playing and queue empty
+    
     if (!status.currentItem && status.queue.length === 0) {
       embed.setDescription(t(locale, "commands.queue.empty"));
       await interaction.reply({ embeds: [embed] });
       return;
     }
 
-    // Show current item
+    
     if (status.currentItem) {
       const truncated =
         status.currentItem.originalText.length > 100
@@ -67,7 +67,7 @@ export const queue: Command = {
       });
     }
 
-    // Show up next (max 5 items)
+    
     if (status.queue.length > 0) {
       const maxShow = 5;
       const toShow = status.queue.slice(0, maxShow);
@@ -97,7 +97,7 @@ export const queue: Command = {
       });
     }
 
-    // Footer with total count
+    
     const totalItems = (status.currentItem ? 1 : 0) + status.queue.length;
     embed.setFooter({
       text: t(locale, "commands.queue.totalItems", {

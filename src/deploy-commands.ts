@@ -25,14 +25,14 @@ async function deployCommands() {
     botLogger.info(`Started refreshing ${commandData.length} application commands.`);
 
     if (guildId) {
-      // Guild commands (instant update, good for development)
+      
       const data = await rest.put(
         Routes.applicationGuildCommands(clientId, guildId),
         { body: commandData }
       );
       botLogger.success(`Successfully reloaded ${(data as unknown[]).length} guild commands.`);
     } else {
-      // Global commands (takes up to 1 hour to update)
+      
       const data = await rest.put(Routes.applicationCommands(clientId), {
         body: commandData,
       });

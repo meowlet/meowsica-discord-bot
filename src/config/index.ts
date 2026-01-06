@@ -1,9 +1,9 @@
-/**
- * Configuration Module
- *
- * Centralized configuration loading with type validation.
- * Uses Bun's built-in environment variable handling.
- */
+
+
+
+
+
+
 
 import type { BotConfig, RedisConfig, ShardingConfig } from "../types/config.ts";
 
@@ -55,26 +55,26 @@ function getShardCount(key: string, defaultValue: number | "auto"): number | "au
   return parsed;
 }
 
-/**
- * Load and validate bot configuration from environment
- */
+
+
+
 export function loadConfig(): BotConfig {
   const enableSharding = getEnvBoolean("ENABLE_SHARDING", false);
   const enableRedis = getEnvBoolean("ENABLE_REDIS", enableSharding);
 
-  // Redis is required when sharding is enabled
+  
   if (enableSharding && !enableRedis) {
     throw new Error("Redis must be enabled when sharding is enabled (ENABLE_REDIS=true)");
   }
 
   const redisUrl = getEnvStringOrNull("REDIS_URL");
 
-  // Validate Redis URL when Redis is enabled
+  
   if (enableRedis && !redisUrl) {
     throw new Error("REDIS_URL is required when ENABLE_REDIS=true");
   }
 
-  // Support both CLIENT_ID and DISCORD_CLIENT_ID (CLIENT_ID takes precedence)
+  
   const clientId =  Bun.env["DISCORD_CLIENT_ID"];
   if (!clientId || clientId === "") {
     throw new Error("Missing required environment variable: CLIENT_ID or DISCORD_CLIENT_ID");
@@ -93,9 +93,9 @@ export function loadConfig(): BotConfig {
   };
 }
 
-/**
- * Get Redis-specific configuration
- */
+
+
+
 export function getRedisConfig(): RedisConfig {
   const url = getEnvString("REDIS_URL");
   return {
@@ -105,9 +105,9 @@ export function getRedisConfig(): RedisConfig {
   };
 }
 
-/**
- * Get sharding-specific configuration
- */
+
+
+
 export function getShardingConfig(): ShardingConfig {
   return {
     shardCount: getShardCount("SHARD_COUNT", "auto"),
@@ -116,12 +116,12 @@ export function getShardingConfig(): ShardingConfig {
   };
 }
 
-/** Cached config instance */
+
 let cachedConfig: BotConfig | null = null;
 
-/**
- * Get the bot configuration (cached after first load)
- */
+
+
+
 export function getConfig(): BotConfig {
   if (!cachedConfig) {
     cachedConfig = loadConfig();

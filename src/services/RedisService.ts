@@ -1,9 +1,9 @@
-/**
- * Redis Service
- *
- * Provides Redis operations using Bun's native Redis client.
- * Implements singleton pattern with automatic reconnection.
- */
+
+
+
+
+
+
 
 import { RedisClient } from "bun";
 import { getRedisConfig, type RedisConfig } from "../config/index.ts";
@@ -25,9 +25,9 @@ const state: RedisServiceState = {
 
 let config: RedisConfig | null = null;
 
-/**
- * Initialize Redis connection
- */
+
+
+
 async function connect(): Promise<RedisClient> {
   if (state.client && state.isConnected) {
     return state.client;
@@ -37,14 +37,14 @@ async function connect(): Promise<RedisClient> {
   redisLogger.info("Connecting to Redis...");
 
   try {
-    // Use Bun's native Redis client
+    
     state.client = new RedisClient(config.url, {
       autoReconnect: true,
       maxRetries: config.maxRetries,
       enableOfflineQueue: true,
     });
 
-    // Set up event handlers
+    
     state.client.onconnect = () => {
       state.isConnected = true;
       state.reconnectAttempts = 0;
@@ -60,7 +60,7 @@ async function connect(): Promise<RedisClient> {
       }
     };
 
-    // Explicitly connect
+    
     await state.client.connect();
     state.isConnected = true;
     state.reconnectAttempts = 0;
@@ -74,9 +74,9 @@ async function connect(): Promise<RedisClient> {
   }
 }
 
-/**
- * Attempt reconnection with exponential backoff
- */
+
+
+
 async function reconnect(): Promise<void> {
   if (!config) {
     config = getRedisConfig();
@@ -96,16 +96,16 @@ async function reconnect(): Promise<void> {
       await connect();
       return;
     } catch {
-      // Continue retry loop
+      
     }
   }
 
   redisLogger.error("Max reconnection attempts reached. Redis unavailable.");
 }
 
-/**
- * Get the Redis client, connecting if necessary
- */
+
+
+
 async function getClient(): Promise<RedisClient> {
   if (!state.client || !state.isConnected) {
     return await connect();
@@ -113,9 +113,9 @@ async function getClient(): Promise<RedisClient> {
   return state.client;
 }
 
-/**
- * Disconnect from Redis
- */
+
+
+
 function disconnect(): void {
   if (state.client) {
     try {
@@ -130,20 +130,20 @@ function disconnect(): void {
   }
 }
 
-/**
- * Check if Redis is connected
- */
+
+
+
 function isConnected(): boolean {
   return state.isConnected && state.client !== null;
 }
 
-// ============================================================================
-// Key-Value Operations
-// ============================================================================
 
-/**
- * Get a value from Redis
- */
+
+
+
+
+
+
 async function get(key: string): Promise<string | null> {
   const client = await getClient();
   try {
@@ -155,9 +155,9 @@ async function get(key: string): Promise<string | null> {
   }
 }
 
-/**
- * Set a value in Redis
- */
+
+
+
 async function set(key: string, value: string, ttlSeconds?: number): Promise<void> {
   const client = await getClient();
   try {
@@ -172,9 +172,9 @@ async function set(key: string, value: string, ttlSeconds?: number): Promise<voi
   }
 }
 
-/**
- * Delete a key from Redis
- */
+
+
+
 async function del(key: string): Promise<number> {
   const client = await getClient();
   try {
@@ -186,9 +186,9 @@ async function del(key: string): Promise<number> {
   }
 }
 
-/**
- * Check if a key exists
- */
+
+
+
 async function exists(key: string): Promise<boolean> {
   const client = await getClient();
   try {
@@ -200,13 +200,13 @@ async function exists(key: string): Promise<boolean> {
   }
 }
 
-// ============================================================================
-// Hash Operations (for structured data)
-// ============================================================================
 
-/**
- * Get a hash field
- */
+
+
+
+
+
+
 async function hget(key: string, field: string): Promise<string | null> {
   const client = await getClient();
   try {
@@ -218,13 +218,13 @@ async function hget(key: string, field: string): Promise<string | null> {
   }
 }
 
-/**
- * Set a hash field using raw command
- */
+
+
+
 async function hset(key: string, field: string, value: string): Promise<number> {
   const client = await getClient();
   try {
-    // Use raw command since hset takes different signature
+    
     const result = await client.send("HSET", [key, field, value]);
     return result as number;
   } catch (error) {
@@ -234,14 +234,14 @@ async function hset(key: string, field: string, value: string): Promise<number> 
   }
 }
 
-/**
- * Get all fields from a hash using raw command
- */
+
+
+
 async function hgetall(key: string): Promise<Record<string, string>> {
   const client = await getClient();
   try {
     const result = await client.send("HGETALL", [key]);
-    // Convert array pairs to object
+    
     if (!Array.isArray(result)) {
       return {};
     }
@@ -276,13 +276,13 @@ async function hdel(key: string, field: string): Promise<number> {
   }
 }
 
-// ============================================================================
-// Pub/Sub Operations (for shard communication)
-// ============================================================================
 
-/**
- * Publish a message to a channel
- */
+
+
+
+
+
+
 async function publish(channel: string, message: string): Promise<number> {
   const client = await getClient();
   try {
@@ -294,9 +294,9 @@ async function publish(channel: string, message: string): Promise<number> {
   }
 }
 
-// ============================================================================
-// Guild Settings Keys
-// ============================================================================
+
+
+
 
 const GUILD_SETTINGS_PREFIX = "guild:settings:";
 const USER_SETTINGS_PREFIX = "user:settings:";
@@ -309,9 +309,9 @@ function userKey(userId: string): string {
   return `${USER_SETTINGS_PREFIX}${userId}`;
 }
 
-/**
- * Get guild settings from Redis
- */
+
+
+
 async function getGuildSettings(guildId: string): Promise<Record<string, string> | null> {
   try {
     const data = await hgetall(guildKey(guildId));
@@ -321,16 +321,16 @@ async function getGuildSettings(guildId: string): Promise<Record<string, string>
   }
 }
 
-/**
- * Set a guild setting in Redis
- */
+
+
+
 async function setGuildSetting(guildId: string, field: string, value: string): Promise<void> {
   await hset(guildKey(guildId), field, value);
 }
 
-/**
- * Get user settings from Redis
- */
+
+
+
 async function getUserSettings(userId: string): Promise<Record<string, string> | null> {
   try {
     const data = await hgetall(userKey(userId));
@@ -340,43 +340,43 @@ async function getUserSettings(userId: string): Promise<Record<string, string> |
   }
 }
 
-/**
- * Set a user setting in Redis
- */
+
+
+
 async function setUserSetting(userId: string, field: string, value: string): Promise<void> {
   await hset(userKey(userId), field, value);
 }
 
-/**
- * Clear all settings for a guild
- */
+
+
+
 async function clearGuildSettings(guildId: string): Promise<void> {
   await del(guildKey(guildId));
 }
 
-// ============================================================================
-// Export Redis Service
-// ============================================================================
+
+
+
 
 export const RedisService = {
-  // Connection management
+  
   connect,
   disconnect,
   isConnected,
   reconnect,
-  // Basic operations
+  
   get,
   set,
   del,
   exists,
-  // Hash operations
+  
   hget,
   hset,
   hgetall,
   hdel,
-  // Pub/Sub
+  
   publish,
-  // High-level settings operations
+  
   getGuildSettings,
   setGuildSetting,
   getUserSettings,

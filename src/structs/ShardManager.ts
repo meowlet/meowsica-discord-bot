@@ -1,9 +1,9 @@
-/**
- * Shard Manager
- *
- * Manages Discord.js sharding for scaling across multiple processes.
- * Uses Redis for cross-shard communication when enabled.
- */
+
+
+
+
+
+
 
 import { ShardingManager, type ShardingManagerOptions } from "discord.js";
 import { getShardingConfig, type ShardingConfig, type BotConfig } from "../config/index.ts";
@@ -17,9 +17,9 @@ interface ShardManagerOptions {
   botFile: string;
 }
 
-/**
- * Create and configure a ShardingManager
- */
+
+
+
 export function createShardManager(options: ShardManagerOptions): ShardingManager {
   const shardingConfig = getShardingConfig();
 
@@ -31,20 +31,20 @@ export function createShardManager(options: ShardManagerOptions): ShardingManage
     token: options.config.token,
     totalShards: shardingConfig.shardCount === "auto" ? "auto" : shardingConfig.shardCount,
     respawn: true,
-    execArgv: ["--conditions=bun"], // Use Bun runtime
+    execArgv: ["--conditions=bun"], 
   };
 
   const manager = new ShardingManager(options.botFile, managerOptions);
 
-  // Register event handlers
+  
   registerShardEvents(manager);
 
   return manager;
 }
 
-/**
- * Register shard lifecycle event handlers
- */
+
+
+
 function registerShardEvents(manager: ShardingManager): void {
   manager.on("shardCreate", (shard) => {
     const shardId = shard.id;
@@ -78,26 +78,26 @@ function registerShardEvents(manager: ShardingManager): void {
   });
 }
 
-/**
- * Handle messages from shards
- */
+
+
+
 function handleShardMessage(shardId: number, message: unknown): void {
-  // Handle custom IPC messages from shards
+  
   if (typeof message === "object" && message !== null) {
     const msg = message as Record<string, unknown>;
 
     if (msg.type === "log") {
       shardLogger.info(`[Shard ${shardId}] ${msg.content}`);
     } else if (msg.type === "stats") {
-      // Could forward stats to monitoring system
+      
       shardLogger.debug(`[Shard ${shardId}] Stats: ${JSON.stringify(msg.data)}`);
     }
   }
 }
 
-/**
- * Start the sharding manager
- */
+
+
+
 export async function startShardManager(manager: ShardingManager): Promise<void> {
   const shardingConfig = getShardingConfig();
 
@@ -106,7 +106,7 @@ export async function startShardManager(manager: ShardingManager): Promise<void>
   try {
     await manager.spawn({
       timeout: shardingConfig.spawnTimeout,
-      delay: 5000, // 5 second delay between shard spawns
+      delay: 5000, 
     });
 
     shardLogger.success(`All shards spawned successfully`);
@@ -116,9 +116,9 @@ export async function startShardManager(manager: ShardingManager): Promise<void>
   }
 }
 
-/**
- * Broadcast a message to all shards
- */
+
+
+
 export async function broadcastToShards(
   manager: ShardingManager,
   message: unknown
@@ -126,9 +126,9 @@ export async function broadcastToShards(
   return await manager.broadcast(message);
 }
 
-/**
- * Get stats from all shards
- */
+
+
+
 export async function getShardStats(manager: ShardingManager): Promise<{
   totalGuilds: number;
   totalMembers: number;

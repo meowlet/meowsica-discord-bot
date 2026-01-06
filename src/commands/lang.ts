@@ -23,7 +23,7 @@ export const lang: Command = {
   data: new SlashCommandBuilder()
     .setName("lang")
     .setDescription(t(DEFAULT_LOCALE, "commands.lang.description"))
-    // UI subcommand group
+    
     .addSubcommandGroup((group) =>
       group
         .setName("interface")
@@ -55,7 +55,7 @@ export const lang: Command = {
             )
         )
     )
-    // Speech (TTS) subcommand group
+    
     .addSubcommandGroup((group) =>
       group
         .setName("speech")
@@ -100,7 +100,7 @@ export const lang: Command = {
       return;
     }
 
-    // Check server permission for server subcommands
+    
     if (subcommand === "server") {
       if (
         !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
@@ -121,7 +121,7 @@ export const lang: Command = {
       }
     }
 
-    // Handle UI settings
+    
     if (group === "interface") {
       if (subcommand === "user") {
         setUserLocale(interaction.user.id, lang);
@@ -137,7 +137,7 @@ export const lang: Command = {
       }
     }
 
-    // Handle speech settings
+    
     if (group === "speech") {
       if (subcommand === "user") {
         setUserVoice(interaction.user.id, lang);

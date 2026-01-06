@@ -16,7 +16,7 @@ export const commands: Command[] = [
   lang,
   join,
   leave,
-  // TTS Commands
+  
   say,
   stop,
   skip,

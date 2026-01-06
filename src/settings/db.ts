@@ -3,7 +3,7 @@ import type { Locale } from "../i18n/index.ts";
 
 const db = new Database("settings.db");
 
-// Initialize tables
+
 db.run(`
   CREATE TABLE IF NOT EXISTS user_settings (
     user_id TEXT PRIMARY KEY,
@@ -24,7 +24,7 @@ db.run(`
   )
 `);
 
-// Migration: add new columns if they don't exist
+
 try {
   db.run(`ALTER TABLE user_settings ADD COLUMN locale_language TEXT`);
 } catch {}
@@ -38,7 +38,7 @@ try {
   db.run(`ALTER TABLE server_settings ADD COLUMN voice_language TEXT`);
 } catch {}
 
-// Migrate old 'language' column data to 'locale_language' if exists
+
 try {
   db.run(`UPDATE user_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`);
   db.run(`UPDATE server_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`);
@@ -54,7 +54,7 @@ type ServerSettingsRow = {
   voice_language: string | null;
 };
 
-// Prepared statements
+
 const getUserSettings = db.prepare<UserSettingsRow, [string]>(
   "SELECT locale_language, voice_language FROM user_settings WHERE user_id = ?"
 );
@@ -83,7 +83,7 @@ const upsertServerVoice = db.prepare(
    ON CONFLICT(server_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`
 );
 
-// User settings - Locale
+
 export function getUserLocale(userId: string): Locale | null {
   const row = getUserSettings.get(userId);
   return (row?.locale_language as Locale) ?? null;
@@ -93,7 +93,7 @@ export function setUserLocale(userId: string, locale: Locale): void {
   upsertUserLocale.run(userId, locale);
 }
 
-// User settings - Voice
+
 export function getUserVoice(userId: string): Locale | null {
   const row = getUserSettings.get(userId);
   return (row?.voice_language as Locale) ?? null;
@@ -103,7 +103,7 @@ export function setUserVoice(userId: string, voice: Locale): void {
   upsertUserVoice.run(userId, voice);
 }
 
-// Server settings - Locale
+
 export function getServerLocale(serverId: string): Locale | null {
   const row = getServerSettings.get(serverId);
   return (row?.locale_language as Locale) ?? null;
@@ -113,7 +113,7 @@ export function setServerLocale(serverId: string, locale: Locale): void {
   upsertServerLocale.run(serverId, locale);
 }
 
-// Server settings - Voice
+
 export function getServerVoice(serverId: string): Locale | null {
   const row = getServerSettings.get(serverId);
   return (row?.voice_language as Locale) ?? null;

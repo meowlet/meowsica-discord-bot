@@ -1,11 +1,11 @@
 export default {
-  // Common
+  
   common: {
     error: "An error occurred",
     success: "Success",
   },
 
-  // Commands
+  
   commands: {
     ping: {
       name: "ping",

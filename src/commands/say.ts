@@ -44,7 +44,7 @@ export const say: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    // Must be in a guild
+    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.say.serverOnly"),
@@ -56,7 +56,7 @@ export const say: Command = {
     const member = interaction.member as GuildMember;
     const voiceChannel = member.voice.channel;
 
-    // User must be in a voice channel
+    
     if (!voiceChannel) {
       await interaction.reply({
         content: t(locale, "commands.say.notInVoice"),
@@ -67,7 +67,7 @@ export const say: Command = {
 
     const guildId = interaction.guild.id;
 
-    // If bot is connected, user must be in same channel
+    
     if (isConnected(guildId)) {
       const botChannelId = getConnectionChannelId(guildId);
       if (botChannelId && botChannelId !== voiceChannel.id) {
@@ -79,11 +79,11 @@ export const say: Command = {
       }
     }
 
-    // Get message and language
+    
     const message = interaction.options.getString("message", true);
     const langOption = interaction.options.getString("lang");
 
-    // Determine language to use
+    
     let language: VoiceLanguageCode;
     if (langOption) {
       if (!isValidVoiceLanguage(langOption)) {
@@ -95,11 +95,11 @@ export const say: Command = {
       }
       language = langOption;
     } else {
-      // Use user's saved TTS language preference
+      
       language = getTTSLanguage(interaction);
     }
 
-    // Validate message
+    
     const validation = validateTTSText(message);
     if (!validation.valid) {
       await interaction.reply({
@@ -112,12 +112,12 @@ export const say: Command = {
     await interaction.deferReply();
 
     try {
-      // Join voice channel if not already connected
+      
       if (!isConnected(guildId)) {
         await joinChannel(voiceChannel);
       }
 
-      // Queue the TTS message
+      
       const { queued, position } = queueTTS(
         guildId,
         message,
@@ -125,7 +125,7 @@ export const say: Command = {
         interaction.user.id
       );
 
-      // Truncate message for display
+      
       const displayMessage =
         message.length > 100 ? message.slice(0, 100) + "..." : message;
 
@@ -165,11 +165,11 @@ export const say: Command = {
     }
   },
 
-  // Handle autocomplete for language option
+  
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused().toLowerCase();
 
-    // Import voice languages dynamically to avoid circular deps
+    
     const { VOICE_LANGUAGES } = await import("../tts/voices.ts");
 
     const filtered = VOICE_LANGUAGE_CODES.filter((code) => {
@@ -180,7 +180,7 @@ export const say: Command = {
         lang.name.toLowerCase().includes(focusedValue) ||
         (lang.nativeName?.toLowerCase().includes(focusedValue) ?? false)
       );
-    }).slice(0, 25); // Discord limit
+    }).slice(0, 25); 
 
     await interaction.respond(
       filtered.map((code) => {

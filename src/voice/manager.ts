@@ -17,7 +17,7 @@ interface GuildVoiceState {
 
 const guildStates = new Map<string, GuildVoiceState>();
 
-// Get timeout from env (in minutes), default 5 minutes, 0 = no timeout
+
 const TIMEOUT_MINUTES = parseInt(
   Bun.env["VOICE_TIMEOUT_MINUTES"] ?? Defaults.VoiceTimeoutMinutes,
   10
@@ -52,14 +52,14 @@ export async function joinChannel(
 ): Promise<VoiceConnection> {
   const guildId = channel.guild.id;
 
-  // Check if already connected to this channel
+  
   const existingState = guildStates.get(guildId);
   if (existingState && existingState.channelId === channel.id) {
     resetTimeout(guildId);
     return existingState.connection;
   }
 
-  // Leave existing channel if connected to a different one
+  
   if (existingState) {
     leaveChannel(guildId);
   }
@@ -69,7 +69,7 @@ export async function joinChannel(
     guildId: guildId,
     adapterCreator: channel.guild.voiceAdapterCreator,
     selfDeaf: false,
-    selfMute: false, // Must be false for TTS playback
+    selfMute: false, 
   });
 
   try {
@@ -88,10 +88,10 @@ export async function joinChannel(
 
   guildStates.set(guildId, state);
 
-  // Start timeout timer
+  
   startTimeout(guildId);
 
-  // Handle disconnection events
+  
   connection.on(VoiceConnectionStatus.Disconnected, async () => {
     try {
       await Promise.race([

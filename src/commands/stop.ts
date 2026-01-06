@@ -19,7 +19,7 @@ export const stop: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    // Must be in a guild
+    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.stop.serverOnly"),
@@ -30,7 +30,7 @@ export const stop: Command = {
 
     const guildId = interaction.guild.id;
 
-    // Bot must be connected
+    
     if (!isConnected(guildId)) {
       await interaction.reply({
         content: t(locale, "commands.stop.notConnected"),
@@ -39,7 +39,7 @@ export const stop: Command = {
       return;
     }
 
-    // User must be in same channel
+    
     const member = interaction.member as GuildMember;
     const voiceChannel = member.voice.channel;
     const botChannelId = getConnectionChannelId(guildId);
@@ -52,13 +52,13 @@ export const stop: Command = {
       return;
     }
 
-    // Clear queue and get count
+    
     const clearedCount = clearQueue(guildId);
 
-    // Cleanup player state
+    
     cleanupPlayer(guildId);
 
-    // Leave voice channel
+    
     leaveChannel(guildId);
 
     const embed = new EmbedBuilder()

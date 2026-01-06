@@ -1,7 +1,7 @@
 import { createConsola } from "consola";
 
 export const logger = createConsola({
-  level: Bun.env["DEBUG"] ? 4 : 3, // 4 = debug, 3 = info
+  level: Bun.env["DEBUG"] ? 4 : 3, 
   formatOptions: {
     label: true,
     date: true,
@@ -10,7 +10,7 @@ export const logger = createConsola({
   },
 });
 
-// Tag-based loggers for different parts of the bot
+
 export const botLogger = logger.withTag("BOT");
 export const voiceLogger = logger.withTag("VOICE");
 export const ttsLogger = logger.withTag("TTS");

@@ -31,7 +31,7 @@ export const voices: Command = {
     const endIndex = Math.min(startIndex + LANGUAGES_PER_PAGE, languages.length);
     const pageLanguages = languages.slice(startIndex, endIndex);
 
-    // Format languages into columns
+    
     const languageList = pageLanguages
       .map((lang) => `${lang.emoji} **${lang.name}** \`${lang.code}\``)
       .join("\n");
@@ -50,7 +50,7 @@ export const voices: Command = {
           inline: false,
         },
         {
-          name: "\u200b", // Zero-width space for spacing
+          name: "\u200b", 
           value: t(locale, "commands.voices.usage"),
           inline: false,
         }

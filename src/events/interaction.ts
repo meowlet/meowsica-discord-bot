@@ -1,8 +1,8 @@
-/**
- * Interaction Event Handler
- *
- * Handles Discord interactions (slash commands, autocomplete, etc.)
- */
+
+
+
+
+
 
 import {
   type Interaction,
@@ -14,7 +14,7 @@ import type { BotClient } from "../structs/BotClient.ts";
 import { commands } from "../commands/index.ts";
 import { commandLogger } from "../utils/logger.ts";
 
-/** Command map for fast lookup */
+
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
 export async function handleInteraction(

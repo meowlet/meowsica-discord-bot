@@ -1,49 +1,49 @@
-/**
- * Google TTS Provider
- *
- * Generates TTS audio URLs using Google Translate's unofficial TTS API.
- * This approach mirrors the legacy bot's use of the google-tts-api package.
- */
+
+
+
+
+
+
 
 import { ttsLogger } from "../utils/logger.ts";
 import type { VoiceLanguageCode } from "./voices.ts";
 
 export interface TTSPayload {
-  /** URL to the audio file */
+  
   url: string;
-  /** The text being spoken */
+  
   text: string;
-  /** Language code used */
+  
   language: VoiceLanguageCode;
 }
 
-/** Maximum text length per TTS request (Google limit) */
+
 const MAX_TEXT_LENGTH = 200;
 
-/** Google TTS API base URL */
+
 const GOOGLE_TTS_BASE = "https://translate.google.com/translate_tts";
 
-/**
- * Generate Google TTS audio URL for a text segment
- */
+
+
+
 function generateTTSUrl(text: string, language: string): string {
   const params = new URLSearchParams({
     ie: "UTF-8",
     q: text,
     tl: language,
     client: "tw-ob",
-    ttsspeed: "1", // Normal speed
+    ttsspeed: "1", 
   });
 
   return `${GOOGLE_TTS_BASE}?${params.toString()}`;
 }
 
-/**
- * Split text into segments that fit within Google TTS limits
- * Splits on sentence boundaries when possible
- */
+
+
+
+
 function splitText(text: string): string[] {
-  // If text is short enough, return as-is
+  
   if (text.length <= MAX_TEXT_LENGTH) {
     return [text];
   }
@@ -110,25 +110,25 @@ function sanitizeText(text: string): string {
     text
       // Replace URLs with a spoken indicator
       .replace(/https?:\/\/[^\s]+/gi, "link")
-      // Remove Discord user mentions <@123>
+      
       .replace(/<@!?\d+>/g, "someone")
-      // Remove Discord channel mentions <#123>
+      
       .replace(/<#\d+>/g, "a channel")
-      // Remove Discord role mentions <@&123>
+      
       .replace(/<@&\d+>/g, "a role")
-      // Remove Discord custom emojis <:name:123>
+      
       .replace(/<a?:\w+:\d+>/g, "")
       // Remove markdown bold/italic
       .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
-      // Remove markdown underline
+      
       .replace(/__([^_]+)__/g, "$1")
-      // Remove markdown strikethrough
+      
       .replace(/~~([^~]+)~~/g, "$1")
-      // Remove markdown spoiler
+      
       .replace(/\|\|([^|]+)\|\|/g, "$1")
-      // Remove code blocks
+      
       .replace(/```[\s\S]*?```/g, "code block")
-      // Remove inline code
+      
       .replace(/`([^`]+)`/g, "$1")
       // Collapse multiple spaces
       .replace(/\s+/g, " ")
@@ -163,9 +163,9 @@ export function createTTSPayloads(
   }));
 }
 
-/**
- * Validate that text can be converted to TTS
- */
+
+
+
 export function validateTTSText(text: string): {
   valid: boolean;
   sanitized: string;

@@ -14,12 +14,12 @@ export {
   setServerVoice,
 } from "./db.ts";
 
-/**
- * Get locale (UI language) for an interaction with priority:
- * 1. User setting (if set)
- * 2. Server setting (if set and in a guild)
- * 3. Default locale (vi)
- */
+
+
+
+
+
+
 export function getLocale(interaction: ChatInputCommandInteraction): Locale {
   const userLocale = getUserLocale(interaction.user.id);
   if (userLocale) return userLocale;
@@ -32,12 +32,12 @@ export function getLocale(interaction: ChatInputCommandInteraction): Locale {
   return DEFAULT_LOCALE;
 }
 
-/**
- * Get voice language (TTS) for an interaction with priority:
- * 1. User setting (if set)
- * 2. Server setting (if set and in a guild)
- * 3. Default locale (vi)
- */
+
+
+
+
+
+
 export function getVoiceLanguage(interaction: ChatInputCommandInteraction): Locale {
   const userVoice = getUserVoice(interaction.user.id);
   if (userVoice) return userVoice;

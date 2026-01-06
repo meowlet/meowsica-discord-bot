@@ -1,10 +1,10 @@
-/**
- * TTS Module Exports
- *
- * Central export point for all TTS-related functionality.
- */
 
-// Voice language configuration
+
+
+
+
+
+
 export {
   VOICE_LANGUAGES,
   VOICE_LANGUAGE_CODES,
@@ -17,14 +17,14 @@ export {
   type VoiceLanguageCode,
 } from "./voices.ts";
 
-// TTS provider (Google TTS)
+
 export {
   createTTSPayloads,
   validateTTSText,
   type TTSPayload,
 } from "./provider.ts";
 
-// TTS player and queue management
+
 export {
   queueTTS,
   skipCurrent,

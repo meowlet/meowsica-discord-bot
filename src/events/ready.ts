@@ -1,8 +1,8 @@
-/**
- * Ready Event Handler
- *
- * Handles the bot ready event after successful Discord login.
- */
+
+
+
+
+
 
 import type { BotClient } from "../structs/BotClient.ts";
 import { botLogger } from "../utils/logger.ts";
@@ -22,10 +22,10 @@ export async function handleReady(client: BotClient): Promise<void> {
   botLogger.box(`${shardInfo} Logged in as ${userTag}`);
   botLogger.info(`${shardInfo} Serving ${guildCount} guilds`);
 
-  // Set bot presence
+  
   updatePresence(client);
 
-  // Refresh presence periodically (every 15 minutes)
+  
   setInterval(() => {
     updatePresence(client);
   }, 15 * 60 * 1000);
@@ -42,7 +42,7 @@ function updatePresence(client: BotClient): void {
     activities: [
       {
         name: `/help | ${guildCount} servers${shardInfo}`,
-        type: 3, // Watching
+        type: 3, 
       },
     ],
   });

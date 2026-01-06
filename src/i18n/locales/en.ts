@@ -1,11 +1,9 @@
 export default {
-  
   common: {
     error: "An error occurred",
     success: "Success",
   },
 
-  
   commands: {
     ping: {
       name: "ping",
@@ -21,6 +19,12 @@ export default {
       description: "Shows all available commands",
       title: "Available Commands",
       subtitle: "Here are all the commands you can use:",
+      categories: {
+        voice: "Voice Commands",
+        tts: "TTS Commands",
+        config: "Configuration",
+        misc: "Miscellaneous",
+      },
     },
     lang: {
       name: "lang",
@@ -56,7 +60,8 @@ export default {
       description: "Leave the voice channel",
       serverOnly: "This command can only be used in a server.",
       notConnected: "I'm not connected to any voice channel.",
-      notInSameChannel: "You must be in the same voice channel as the bot to use this command.",
+      notInSameChannel:
+        "You must be in the same voice channel as the bot to use this command.",
       success: "Left Voice Channel",
       disconnected: "Disconnected from the voice channel.",
       failed: "Failed to leave the voice channel.",
@@ -70,10 +75,11 @@ export default {
       notInSameChannel: "You must be in the same voice channel as the bot.",
       emptyMessage: "Please provide a message to say.",
       messageTooLong: "Message is too long. Maximum {max} characters allowed.",
-      invalidLanguage: "Invalid language code. Use `/voices` to see available languages.",
+      invalidLanguage:
+        "Invalid language code. Use `/voices` to see available languages.",
       success: "Speaking",
-      speaking: "Now saying: \"{message}\"",
-      queued: "Added to queue: \"{message}\"",
+      speaking: 'Now saying: "{message}"',
+      queued: 'Added to queue: "{message}"',
       failed: "Failed to play TTS audio.",
       joinFailed: "Failed to join your voice channel.",
     },
@@ -98,7 +104,8 @@ export default {
     voices: {
       description: "List all available TTS voice languages",
       title: "Available TTS Languages",
-      subtitle: "Use `/say lang:CODE` to speak in a specific language, or set your default with `/lang speech user`.",
+      subtitle:
+        "Use `/say lang:CODE` to speak in a specific language, or set your default with `/lang speech user`.",
       pageInfo: "Page {current} of {total}",
       totalLanguages: "{count} languages available",
       usage: "**Usage:** `/say message:Hello lang:ja` to speak in Japanese",

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import type { BotClient } from "../structs/BotClient.ts";
 import { botLogger } from "../utils/logger.ts";
 
@@ -17,18 +11,17 @@ export async function handleReady(client: BotClient): Promise<void> {
 
   const shardInfo = client.getShardInfo();
   const guildCount = client.guilds.cache.size;
-  const userTag = client.user.tag;
 
-  botLogger.box(`${shardInfo} Logged in as ${userTag}`);
-  botLogger.info(`${shardInfo} Serving ${guildCount} guilds`);
+  botLogger.info(`${shardInfo} Ready | ${guildCount} guilds`);
 
-  
   updatePresence(client);
 
-  
-  setInterval(() => {
-    updatePresence(client);
-  }, 15 * 60 * 1000);
+  setInterval(
+    () => {
+      updatePresence(client);
+    },
+    15 * 60 * 1000,
+  );
 }
 
 function updatePresence(client: BotClient): void {
@@ -42,9 +35,8 @@ function updatePresence(client: BotClient): void {
     activities: [
       {
         name: `/help | ${guildCount} servers${shardInfo}`,
-        type: 3, 
+        type: 3,
       },
     ],
   });
 }
-

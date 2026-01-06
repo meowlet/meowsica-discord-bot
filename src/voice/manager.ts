@@ -6,7 +6,6 @@ import {
   type VoiceConnection,
 } from "@discordjs/voice";
 import type { VoiceBasedChannel } from "discord.js";
-import { voiceLogger } from "../utils/logger.ts";
 import { Timeouts, Defaults } from "../constants/index.ts";
 
 interface GuildVoiceState {
@@ -17,10 +16,9 @@ interface GuildVoiceState {
 
 const guildStates = new Map<string, GuildVoiceState>();
 
-
 const TIMEOUT_MINUTES = parseInt(
   Bun.env["VOICE_TIMEOUT_MINUTES"] ?? Defaults.VoiceTimeoutMinutes,
-  10
+  10,
 );
 const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
 
@@ -35,9 +33,6 @@ function startTimeout(guildId: string): void {
 
   if (TIMEOUT_MS > 0) {
     state.timeoutTimer = setTimeout(() => {
-      voiceLogger.info(
-        `Timeout reached for guild ${guildId}, disconnecting...`
-      );
       leaveChannel(guildId);
     }, TIMEOUT_MS);
   }
@@ -48,18 +43,16 @@ export function resetTimeout(guildId: string): void {
 }
 
 export async function joinChannel(
-  channel: VoiceBasedChannel
+  channel: VoiceBasedChannel,
 ): Promise<VoiceConnection> {
   const guildId = channel.guild.id;
 
-  
   const existingState = guildStates.get(guildId);
   if (existingState && existingState.channelId === channel.id) {
     resetTimeout(guildId);
     return existingState.connection;
   }
 
-  
   if (existingState) {
     leaveChannel(guildId);
   }
@@ -69,12 +62,15 @@ export async function joinChannel(
     guildId: guildId,
     adapterCreator: channel.guild.voiceAdapterCreator,
     selfDeaf: false,
-    selfMute: false, 
+    selfMute: false,
   });
 
   try {
-    await entersState(connection, VoiceConnectionStatus.Ready, Timeouts.VoiceReady);
-    voiceLogger.success(`Joined voice channel: ${channel.name} (${channel.id})`);
+    await entersState(
+      connection,
+      VoiceConnectionStatus.Ready,
+      Timeouts.VoiceReady,
+    );
   } catch (error) {
     connection.destroy();
     throw new Error(`Failed to join voice channel: ${error}`);
@@ -88,15 +84,21 @@ export async function joinChannel(
 
   guildStates.set(guildId, state);
 
-  
   startTimeout(guildId);
 
-  
   connection.on(VoiceConnectionStatus.Disconnected, async () => {
     try {
       await Promise.race([
-        entersState(connection, VoiceConnectionStatus.Signalling, Timeouts.VoiceReconnect),
-        entersState(connection, VoiceConnectionStatus.Connecting, Timeouts.VoiceReconnect),
+        entersState(
+          connection,
+          VoiceConnectionStatus.Signalling,
+          Timeouts.VoiceReconnect,
+        ),
+        entersState(
+          connection,
+          VoiceConnectionStatus.Connecting,
+          Timeouts.VoiceReconnect,
+        ),
       ]);
     } catch {
       leaveChannel(guildId);
@@ -119,7 +121,6 @@ function cleanup(guildId: string): void {
   }
 
   guildStates.delete(guildId);
-  voiceLogger.debug(`Cleaned up state for guild ${guildId}`);
 }
 
 export function leaveChannel(guildId: string): boolean {
@@ -127,7 +128,6 @@ export function leaveChannel(guildId: string): boolean {
   if (connection) {
     connection.destroy();
     cleanup(guildId);
-    voiceLogger.info(`Left voice channel in guild ${guildId}`);
     return true;
   }
   return false;

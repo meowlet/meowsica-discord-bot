@@ -1,14 +1,10 @@
-import {
-  EmbedBuilder,
-  SlashCommandBuilder,
-  MessageFlags,
-} from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { isConnected } from "../voice/manager.ts";
-import { Colors } from "../constants/index.ts";
-import { getQueueStatus, getVoiceLanguageDisplay } from "../tts/index.ts";
+import { EmbedBuilder, SlashCommandBuilder, MessageFlags } from "discord.js";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import { isConnected } from "../../voice/manager.ts";
+import { Colors } from "../../constants/index.ts";
+import { getQueueStatus, getVoiceLanguageDisplay } from "../../tts/index.ts";
 
 export const queue: Command = {
   data: new SlashCommandBuilder()
@@ -18,7 +14,6 @@ export const queue: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.queue.serverOnly"),
@@ -29,7 +24,6 @@ export const queue: Command = {
 
     const guildId = interaction.guild.id;
 
-    
     if (!isConnected(guildId)) {
       await interaction.reply({
         content: t(locale, "commands.queue.notConnected"),
@@ -44,14 +38,12 @@ export const queue: Command = {
       .setTitle(t(locale, "commands.queue.title"))
       .setColor(Colors.Primary);
 
-    
     if (!status.currentItem && status.queue.length === 0) {
       embed.setDescription(t(locale, "commands.queue.empty"));
       await interaction.reply({ embeds: [embed] });
       return;
     }
 
-    
     if (status.currentItem) {
       const truncated =
         status.currentItem.originalText.length > 100
@@ -67,7 +59,6 @@ export const queue: Command = {
       });
     }
 
-    
     if (status.queue.length > 0) {
       const maxShow = 5;
       const toShow = status.queue.slice(0, maxShow);
@@ -97,7 +88,6 @@ export const queue: Command = {
       });
     }
 
-    
     const totalItems = (status.currentItem ? 1 : 0) + status.queue.length;
     embed.setFooter({
       text: t(locale, "commands.queue.totalItems", {

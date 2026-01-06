@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import {
   type Interaction,
   type ChatInputCommandInteraction,
@@ -14,12 +8,11 @@ import type { BotClient } from "../structs/BotClient.ts";
 import { commands } from "../commands/index.ts";
 import { commandLogger } from "../utils/logger.ts";
 
-
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
 export async function handleInteraction(
   client: BotClient,
-  interaction: Interaction
+  interaction: Interaction,
 ): Promise<void> {
   if (interaction.isChatInputCommand()) {
     await handleCommand(client, interaction);
@@ -30,7 +23,7 @@ export async function handleInteraction(
 
 async function handleCommand(
   client: BotClient,
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const command = commandMap.get(interaction.commandName);
 
@@ -44,11 +37,7 @@ async function handleCommand(
   }
 
   try {
-    const shardInfo = client.getShardInfo();
-    commandLogger.info(
-      `${shardInfo} /${interaction.commandName} by ${interaction.user.tag} in ${interaction.guild?.name ?? "DM"}`
-    );
-
+    commandLogger.info(`/${interaction.commandName} by ${interaction.user.tag}`);
     await command.execute(interaction);
   } catch (error) {
     commandLogger.error(`Error executing /${interaction.commandName}:`, error);
@@ -69,7 +58,9 @@ async function handleCommand(
   }
 }
 
-async function handleAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
+async function handleAutocomplete(
+  interaction: AutocompleteInteraction,
+): Promise<void> {
   const command = commandMap.get(interaction.commandName);
 
   if (!command || !command.autocomplete) {
@@ -79,7 +70,9 @@ async function handleAutocomplete(interaction: AutocompleteInteraction): Promise
   try {
     await command.autocomplete(interaction);
   } catch (error) {
-    commandLogger.error(`Error in autocomplete for /${interaction.commandName}:`, error);
+    commandLogger.error(
+      `Error in autocomplete for /${interaction.commandName}:`,
+      error,
+    );
   }
 }
-

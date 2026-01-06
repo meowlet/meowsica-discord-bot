@@ -1,9 +1,18 @@
-import { EmbedBuilder, SlashCommandBuilder, GuildMember, MessageFlags } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { leaveChannel, isConnected, getConnectionChannelId } from "../voice/manager.ts";
-import { Colors } from "../constants/index.ts";
+import {
+  EmbedBuilder,
+  SlashCommandBuilder,
+  GuildMember,
+  MessageFlags,
+} from "discord.js";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import {
+  leaveChannel,
+  isConnected,
+  getConnectionChannelId,
+} from "../../voice/manager.ts";
+import { Colors } from "../../constants/index.ts";
 
 export const leave: Command = {
   data: new SlashCommandBuilder()

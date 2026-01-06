@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import {
   createAudioPlayer,
   createAudioResource,
@@ -20,32 +13,26 @@ import type { VoiceLanguageCode } from "./voices.ts";
 import { resetTimeout } from "../voice/manager.ts";
 
 export interface QueueItem {
-  
   payloads: TTSPayload[];
-  
+
   currentIndex: number;
-  
+
   userId: string;
-  
+
   originalText: string;
 }
 
 interface GuildPlayerState {
-  
   player: AudioPlayer;
-  
+
   queue: QueueItem[];
-  
+
   isPlaying: boolean;
-  
+
   currentItem: QueueItem | null;
 }
 
-
 const guildPlayers = new Map<string, GuildPlayerState>();
-
-
-
 
 function getOrCreateState(guildId: string): GuildPlayerState {
   let state = guildPlayers.get(guildId);
@@ -60,7 +47,6 @@ function getOrCreateState(guildId: string): GuildPlayerState {
       currentItem: null,
     };
 
-    
     player.on(AudioPlayerStatus.Idle, () => {
       handlePlayerIdle(guildId);
     });
@@ -71,14 +57,10 @@ function getOrCreateState(guildId: string): GuildPlayerState {
     });
 
     guildPlayers.set(guildId, state);
-    ttsLogger.debug(`Created new player state for guild ${guildId}`);
   }
 
   return state;
 }
-
-
-
 
 function handlePlayerIdle(guildId: string): void {
   const state = guildPlayers.get(guildId);
@@ -86,8 +68,10 @@ function handlePlayerIdle(guildId: string): void {
 
   const currentItem = state.currentItem;
 
-  
-  if (currentItem && currentItem.currentIndex < currentItem.payloads.length - 1) {
+  if (
+    currentItem &&
+    currentItem.currentIndex < currentItem.payloads.length - 1
+  ) {
     currentItem.currentIndex++;
     const nextPayload = currentItem.payloads[currentItem.currentIndex];
     if (nextPayload) {
@@ -96,22 +80,19 @@ function handlePlayerIdle(guildId: string): void {
     return;
   }
 
-  
   state.currentItem = null;
   state.isPlaying = false;
 
   if (state.queue.length > 0) {
     const nextItem = state.queue.shift()!;
     playItem(guildId, nextItem);
-  } else {
-    ttsLogger.debug(`Queue empty for guild ${guildId}`);
   }
 }
 
-
-
-
-async function playPayload(guildId: string, payload: TTSPayload): Promise<void> {
+async function playPayload(
+  guildId: string,
+  payload: TTSPayload,
+): Promise<void> {
   const state = guildPlayers.get(guildId);
   if (!state) return;
 
@@ -122,7 +103,6 @@ async function playPayload(guildId: string, payload: TTSPayload): Promise<void> 
   }
 
   try {
-    
     const response = await fetch(payload.url, {
       headers: {
         "User-Agent":
@@ -137,32 +117,23 @@ async function playPayload(guildId: string, payload: TTSPayload): Promise<void> 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    
     const stream = Readable.from(buffer);
 
-    
     const resource = createAudioResource(stream, {
       inputType: StreamType.Arbitrary,
     });
 
-    
     connection.subscribe(state.player);
     state.player.play(resource);
     state.isPlaying = true;
 
-    
     resetTimeout(guildId);
-
-    ttsLogger.debug(`Playing TTS: "${payload.text.slice(0, 30)}..."`);
   } catch (error) {
     ttsLogger.error(`Failed to play TTS payload:`, error);
-    
+
     handlePlayerIdle(guildId);
   }
 }
-
-
-
 
 function playItem(guildId: string, item: QueueItem): void {
   const state = guildPlayers.get(guildId);
@@ -177,15 +148,11 @@ function playItem(guildId: string, item: QueueItem): void {
   }
 }
 
-
-
-
-
 export function queueTTS(
   guildId: string,
   text: string,
   language: VoiceLanguageCode,
-  userId: string
+  userId: string,
 ): { queued: boolean; position: number } {
   const state = getOrCreateState(guildId);
   const payloads = createTTSPayloads(text, language);
@@ -201,25 +168,16 @@ export function queueTTS(
     originalText: text,
   };
 
-  
   if (!state.isPlaying && !state.currentItem) {
     playItem(guildId, item);
     return { queued: false, position: 0 };
   }
 
-  
   state.queue.push(item);
   const position = state.queue.length;
 
-  ttsLogger.debug(
-    `Queued TTS for guild ${guildId}, position ${position}: "${text.slice(0, 30)}..."`
-  );
-
   return { queued: true, position };
 }
-
-
-
 
 export function skipCurrent(guildId: string): boolean {
   const state = guildPlayers.get(guildId);
@@ -230,9 +188,6 @@ export function skipCurrent(guildId: string): boolean {
   state.player.stop(true);
   return true;
 }
-
-
-
 
 export function clearQueue(guildId: string): number {
   const state = guildPlayers.get(guildId);
@@ -245,13 +200,8 @@ export function clearQueue(guildId: string): number {
   state.isPlaying = false;
   state.player.stop(true);
 
-  ttsLogger.debug(`Cleared ${cleared} item(s) from queue in guild ${guildId}`);
-
   return cleared;
 }
-
-
-
 
 export function getQueueStatus(guildId: string): {
   isPlaying: boolean;
@@ -278,9 +228,6 @@ export function getQueueStatus(guildId: string): {
   };
 }
 
-
-
-
 export function cleanupPlayer(guildId: string): void {
   const state = guildPlayers.get(guildId);
   if (state) {
@@ -289,12 +236,8 @@ export function cleanupPlayer(guildId: string): void {
     state.currentItem = null;
     state.isPlaying = false;
     guildPlayers.delete(guildId);
-    ttsLogger.debug(`Cleaned up player for guild ${guildId}`);
   }
 }
-
-
-
 
 export function isPlaying(guildId: string): boolean {
   const state = guildPlayers.get(guildId);

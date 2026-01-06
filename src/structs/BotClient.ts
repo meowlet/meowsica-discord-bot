@@ -1,11 +1,9 @@
-
-
-
-
-
-
-
-import { Client, Collection, GatewayIntentBits, type ClientOptions } from "discord.js";
+import {
+  Client,
+  Collection,
+  GatewayIntentBits,
+  type ClientOptions,
+} from "discord.js";
 import type { BotConfig } from "../types/config.ts";
 import { RedisService } from "../services/RedisService.ts";
 import { botLogger } from "../utils/logger.ts";
@@ -16,16 +14,12 @@ interface BotClientOptions {
 }
 
 export class BotClient extends Client {
-  
   public readonly config: BotConfig;
 
-  
   public initialized: boolean = false;
 
-  
   public shardId: number | null = null;
 
-  
   public totalShards: number | null = null;
 
   constructor(options: BotClientOptions) {
@@ -36,16 +30,13 @@ export class BotClient extends Client {
       GatewayIntentBits.MessageContent,
     ];
 
-    
-    
     const clientOptions: ClientOptions = {
       intents: defaultIntents,
     };
 
-    
     if (options.clientOptions) {
       const { shardCount, ...restOptions } = options.clientOptions;
-      
+
       if (options.config.enableSharding && shardCount !== undefined) {
         Object.assign(clientOptions, { shardCount }, restOptions);
       } else {
@@ -57,7 +48,6 @@ export class BotClient extends Client {
 
     this.config = options.config;
 
-    
     if (process.env.SHARD_ID !== undefined) {
       this.shardId = parseInt(process.env.SHARD_ID, 10);
     }
@@ -66,59 +56,33 @@ export class BotClient extends Client {
     }
   }
 
-  
-
-
   async initialize(): Promise<void> {
-    botLogger.info("Initializing bot services...");
-
-    
     if (this.config.enableRedis) {
       try {
         await RedisService.connect();
-        botLogger.success("Redis connected");
       } catch (error) {
         botLogger.error("Failed to connect to Redis:", error);
-        
+
         if (this.config.enableSharding) {
           throw new Error("Redis connection required for sharding mode");
         }
         botLogger.warn("Continuing without Redis...");
       }
     }
-
-    botLogger.success("Bot services initialized");
   }
 
-  
-
-
   async shutdown(): Promise<void> {
-    botLogger.info("Shutting down bot...");
-
-    
     if (this.config.enableRedis && RedisService.isConnected()) {
       RedisService.disconnect();
     }
 
-    
     this.destroy();
-
-    botLogger.info("Bot shutdown complete");
   }
-
-  
-
 
   async start(): Promise<void> {
     await this.initialize();
-
-    botLogger.info("Logging in to Discord...");
     await this.login(this.config.token);
   }
-
-  
-
 
   getShardInfo(): string {
     if (this.shardId !== null && this.totalShards !== null) {
@@ -127,11 +91,7 @@ export class BotClient extends Client {
     return "[Single]";
   }
 
-  
-
-
   isSharded(): boolean {
     return this.shardId !== null;
   }
 }
-

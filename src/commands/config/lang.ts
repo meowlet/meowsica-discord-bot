@@ -1,18 +1,22 @@
-import { PermissionFlagsBits, SlashCommandBuilder, MessageFlags } from "discord.js";
-import type { Command } from "../types/command.ts";
+import {
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  MessageFlags,
+} from "discord.js";
+import type { Command } from "../../types/command.ts";
 import {
   t,
   DEFAULT_LOCALE,
   SUPPORTED_LOCALES,
   type Locale,
-} from "../i18n/index.ts";
+} from "../../i18n/index.ts";
 import {
   getLocale,
   setUserLocale,
   setServerLocale,
   setUserVoice,
   setServerVoice,
-} from "../settings/index.ts";
+} from "../../settings/index.ts";
 
 const langChoices = [
   { name: "English", value: "en" },
@@ -23,12 +27,12 @@ export const lang: Command = {
   data: new SlashCommandBuilder()
     .setName("lang")
     .setDescription(t(DEFAULT_LOCALE, "commands.lang.description"))
-    
+
     .addSubcommandGroup((group) =>
       group
         .setName("interface")
         .setDescription(
-          t(DEFAULT_LOCALE, "commands.lang.interface.description")
+          t(DEFAULT_LOCALE, "commands.lang.interface.description"),
         )
         .addSubcommand((sub) =>
           sub
@@ -39,8 +43,8 @@ export const lang: Command = {
                 .setName("lang")
                 .setDescription(t(DEFAULT_LOCALE, "commands.lang.option"))
                 .setRequired(true)
-                .addChoices(...langChoices)
-            )
+                .addChoices(...langChoices),
+            ),
         )
         .addSubcommand((sub) =>
           sub
@@ -51,11 +55,11 @@ export const lang: Command = {
                 .setName("lang")
                 .setDescription(t(DEFAULT_LOCALE, "commands.lang.option"))
                 .setRequired(true)
-                .addChoices(...langChoices)
-            )
-        )
+                .addChoices(...langChoices),
+            ),
+        ),
     )
-    
+
     .addSubcommandGroup((group) =>
       group
         .setName("speech")
@@ -69,8 +73,8 @@ export const lang: Command = {
                 .setName("lang")
                 .setDescription(t(DEFAULT_LOCALE, "commands.lang.option"))
                 .setRequired(true)
-                .addChoices(...langChoices)
-            )
+                .addChoices(...langChoices),
+            ),
         )
         .addSubcommand((sub) =>
           sub
@@ -81,9 +85,9 @@ export const lang: Command = {
                 .setName("lang")
                 .setDescription(t(DEFAULT_LOCALE, "commands.lang.option"))
                 .setRequired(true)
-                .addChoices(...langChoices)
-            )
-        )
+                .addChoices(...langChoices),
+            ),
+        ),
     ),
 
   async execute(interaction) {
@@ -100,7 +104,6 @@ export const lang: Command = {
       return;
     }
 
-    
     if (subcommand === "server") {
       if (
         !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
@@ -121,7 +124,6 @@ export const lang: Command = {
       }
     }
 
-    
     if (group === "interface") {
       if (subcommand === "user") {
         setUserLocale(interaction.user.id, lang);
@@ -137,7 +139,6 @@ export const lang: Command = {
       }
     }
 
-    
     if (group === "speech") {
       if (subcommand === "user") {
         setUserVoice(interaction.user.id, lang);

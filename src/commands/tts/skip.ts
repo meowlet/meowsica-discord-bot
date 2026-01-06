@@ -4,12 +4,12 @@ import {
   GuildMember,
   MessageFlags,
 } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { isConnected, getConnectionChannelId } from "../voice/manager.ts";
-import { Colors } from "../constants/index.ts";
-import { skipCurrent, getQueueStatus } from "../tts/index.ts";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import { isConnected, getConnectionChannelId } from "../../voice/manager.ts";
+import { Colors } from "../../constants/index.ts";
+import { skipCurrent, getQueueStatus } from "../../tts/index.ts";
 
 export const skip: Command = {
   data: new SlashCommandBuilder()
@@ -19,7 +19,6 @@ export const skip: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.skip.serverOnly"),
@@ -30,7 +29,6 @@ export const skip: Command = {
 
     const guildId = interaction.guild.id;
 
-    
     if (!isConnected(guildId)) {
       await interaction.reply({
         content: t(locale, "commands.skip.notConnected"),
@@ -39,7 +37,6 @@ export const skip: Command = {
       return;
     }
 
-    
     const member = interaction.member as GuildMember;
     const voiceChannel = member.voice.channel;
     const botChannelId = getConnectionChannelId(guildId);
@@ -52,7 +49,6 @@ export const skip: Command = {
       return;
     }
 
-    
     const status = getQueueStatus(guildId);
     if (!status.isPlaying) {
       await interaction.reply({
@@ -62,7 +58,6 @@ export const skip: Command = {
       return;
     }
 
-    
     skipCurrent(guildId);
 
     const embed = new EmbedBuilder()

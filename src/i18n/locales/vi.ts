@@ -1,11 +1,9 @@
 export default {
-  
   common: {
     error: "Đã xảy ra lỗi",
     success: "Thành công",
   },
 
-  
   commands: {
     ping: {
       name: "ping",
@@ -21,6 +19,12 @@ export default {
       description: "Hiển thị tất cả các lệnh có sẵn",
       title: "Danh sách lệnh",
       subtitle: "Đây là tất cả các lệnh bạn có thể sử dụng:",
+      categories: {
+        voice: "Lệnh Voice",
+        tts: "Lệnh TTS",
+        config: "Cấu hình",
+        misc: "Khác",
+      },
     },
     lang: {
       name: "lang",
@@ -57,7 +61,8 @@ export default {
       description: "Rời khỏi kênh thoại",
       serverOnly: "Lệnh này chỉ có thể sử dụng trong server.",
       notConnected: "Tôi không kết nối với kênh thoại nào.",
-      notInSameChannel: "Bạn phải ở cùng kênh thoại với bot để sử dụng lệnh này.",
+      notInSameChannel:
+        "Bạn phải ở cùng kênh thoại với bot để sử dụng lệnh này.",
       success: "Đã rời kênh thoại",
       disconnected: "Đã ngắt kết nối khỏi kênh thoại.",
       failed: "Không thể rời khỏi kênh thoại.",
@@ -71,10 +76,11 @@ export default {
       notInSameChannel: "Bạn phải ở cùng kênh thoại với bot.",
       emptyMessage: "Vui lòng nhập nội dung cần đọc.",
       messageTooLong: "Tin nhắn quá dài. Tối đa {max} ký tự.",
-      invalidLanguage: "Mã ngôn ngữ không hợp lệ. Dùng `/voices` để xem danh sách.",
+      invalidLanguage:
+        "Mã ngôn ngữ không hợp lệ. Dùng `/voices` để xem danh sách.",
       success: "Đang đọc",
-      speaking: "Đang đọc: \"{message}\"",
-      queued: "Đã thêm vào hàng đợi: \"{message}\"",
+      speaking: 'Đang đọc: "{message}"',
+      queued: 'Đã thêm vào hàng đợi: "{message}"',
       failed: "Không thể phát âm thanh TTS.",
       joinFailed: "Không thể vào kênh thoại của bạn.",
     },
@@ -99,10 +105,12 @@ export default {
     voices: {
       description: "Danh sách ngôn ngữ TTS có sẵn",
       title: "Ngôn ngữ TTS có sẵn",
-      subtitle: "Dùng `/say lang:CODE` để đọc bằng ngôn ngữ cụ thể, hoặc đặt mặc định với `/lang speech user`.",
+      subtitle:
+        "Dùng `/say lang:CODE` để đọc bằng ngôn ngữ cụ thể, hoặc đặt mặc định với `/lang speech user`.",
       pageInfo: "Trang {current}/{total}",
       totalLanguages: "{count} ngôn ngữ có sẵn",
-      usage: "**Cách dùng:** `/say message:Xin chào lang:vi` để đọc bằng Tiếng Việt",
+      usage:
+        "**Cách dùng:** `/say message:Xin chào lang:vi` để đọc bằng Tiếng Việt",
     },
     queue: {
       description: "Xem hàng đợi TTS hiện tại",

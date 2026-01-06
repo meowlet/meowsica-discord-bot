@@ -1,7 +1,3 @@
-
-
-
-
 export { BotClient } from "./BotClient.ts";
 export {
   createShardManager,
@@ -9,4 +5,3 @@ export {
   broadcastToShards,
   getShardStats,
 } from "./ShardManager.ts";
-

@@ -1,14 +1,14 @@
 import type { Command } from "../types/command.ts";
-import { ping } from "./ping.ts";
-import { help } from "./help.ts";
-import { lang } from "./lang.ts";
-import { join } from "./join.ts";
-import { leave } from "./leave.ts";
-import { say } from "./say.ts";
-import { stop } from "./stop.ts";
-import { skip } from "./skip.ts";
-import { voices } from "./voices.ts";
-import { queue } from "./queue.ts";
+import { ping } from "./misc/ping.ts";
+import { help } from "./misc/help.ts";
+import { lang } from "./config/lang.ts";
+import { join } from "./voice/join.ts";
+import { leave } from "./voice/leave.ts";
+import { say } from "./tts/say.ts";
+import { stop } from "./tts/stop.ts";
+import { skip } from "./tts/skip.ts";
+import { voices } from "./config/voices.ts";
+import { queue } from "./tts/queue.ts";
 
 export const commands: Command[] = [
   ping,
@@ -16,7 +16,6 @@ export const commands: Command[] = [
   lang,
   join,
   leave,
-  
   say,
   stop,
   skip,

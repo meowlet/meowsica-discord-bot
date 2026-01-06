@@ -1,9 +1,9 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { Colors } from "../constants/index.ts";
-import { getSortedVoiceLanguages } from "../tts/index.ts";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import { Colors } from "../../constants/index.ts";
+import { getSortedVoiceLanguages } from "../../tts/index.ts";
 
 const LANGUAGES_PER_PAGE = 15;
 
@@ -16,7 +16,7 @@ export const voices: Command = {
         .setName("page")
         .setDescription("Page number")
         .setRequired(false)
-        .setMinValue(1)
+        .setMinValue(1),
     ),
 
   async execute(interaction) {
@@ -28,10 +28,12 @@ export const voices: Command = {
     const page = Math.min(Math.max(1, requestedPage), totalPages);
 
     const startIndex = (page - 1) * LANGUAGES_PER_PAGE;
-    const endIndex = Math.min(startIndex + LANGUAGES_PER_PAGE, languages.length);
+    const endIndex = Math.min(
+      startIndex + LANGUAGES_PER_PAGE,
+      languages.length,
+    );
     const pageLanguages = languages.slice(startIndex, endIndex);
 
-    
     const languageList = pageLanguages
       .map((lang) => `${lang.emoji} **${lang.name}** \`${lang.code}\``)
       .join("\n");
@@ -50,10 +52,10 @@ export const voices: Command = {
           inline: false,
         },
         {
-          name: "\u200b", 
+          name: "\u200b",
           value: t(locale, "commands.voices.usage"),
           inline: false,
-        }
+        },
       )
       .setFooter({
         text: t(locale, "commands.voices.totalLanguages", {

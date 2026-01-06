@@ -3,7 +3,6 @@ import type { Locale } from "../i18n/index.ts";
 
 const db = new Database("settings.db");
 
-
 db.run(`
   CREATE TABLE IF NOT EXISTS user_settings (
     user_id TEXT PRIMARY KEY,
@@ -24,7 +23,6 @@ db.run(`
   )
 `);
 
-
 try {
   db.run(`ALTER TABLE user_settings ADD COLUMN locale_language TEXT`);
 } catch {}
@@ -38,10 +36,13 @@ try {
   db.run(`ALTER TABLE server_settings ADD COLUMN voice_language TEXT`);
 } catch {}
 
-
 try {
-  db.run(`UPDATE user_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`);
-  db.run(`UPDATE server_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`);
+  db.run(
+    `UPDATE user_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`,
+  );
+  db.run(
+    `UPDATE server_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`,
+  );
 } catch {}
 
 type UserSettingsRow = {
@@ -54,35 +55,33 @@ type ServerSettingsRow = {
   voice_language: string | null;
 };
 
-
 const getUserSettings = db.prepare<UserSettingsRow, [string]>(
-  "SELECT locale_language, voice_language FROM user_settings WHERE user_id = ?"
+  "SELECT locale_language, voice_language FROM user_settings WHERE user_id = ?",
 );
 
 const getServerSettings = db.prepare<ServerSettingsRow, [string]>(
-  "SELECT locale_language, voice_language FROM server_settings WHERE server_id = ?"
+  "SELECT locale_language, voice_language FROM server_settings WHERE server_id = ?",
 );
 
 const upsertUserLocale = db.prepare(
   `INSERT INTO user_settings (user_id, locale_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET locale_language = excluded.locale_language, updated_at = unixepoch()`
+   ON CONFLICT(user_id) DO UPDATE SET locale_language = excluded.locale_language, updated_at = unixepoch()`,
 );
 
 const upsertUserVoice = db.prepare(
   `INSERT INTO user_settings (user_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`
+   ON CONFLICT(user_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
 );
 
 const upsertServerLocale = db.prepare(
   `INSERT INTO server_settings (server_id, locale_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(server_id) DO UPDATE SET locale_language = excluded.locale_language, updated_at = unixepoch()`
+   ON CONFLICT(server_id) DO UPDATE SET locale_language = excluded.locale_language, updated_at = unixepoch()`,
 );
 
 const upsertServerVoice = db.prepare(
   `INSERT INTO server_settings (server_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(server_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`
+   ON CONFLICT(server_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
 );
-
 
 export function getUserLocale(userId: string): Locale | null {
   const row = getUserSettings.get(userId);
@@ -93,7 +92,6 @@ export function setUserLocale(userId: string, locale: Locale): void {
   upsertUserLocale.run(userId, locale);
 }
 
-
 export function getUserVoice(userId: string): Locale | null {
   const row = getUserSettings.get(userId);
   return (row?.voice_language as Locale) ?? null;
@@ -103,7 +101,6 @@ export function setUserVoice(userId: string, voice: Locale): void {
   upsertUserVoice.run(userId, voice);
 }
 
-
 export function getServerLocale(serverId: string): Locale | null {
   const row = getServerSettings.get(serverId);
   return (row?.locale_language as Locale) ?? null;
@@ -112,7 +109,6 @@ export function getServerLocale(serverId: string): Locale | null {
 export function setServerLocale(serverId: string, locale: Locale): void {
   upsertServerLocale.run(serverId, locale);
 }
-
 
 export function getServerVoice(serverId: string): Locale | null {
   const row = getServerSettings.get(serverId);

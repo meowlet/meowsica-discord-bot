@@ -1,21 +1,8 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { getConfig } from "./config/index.ts";
-import { createShardManager, startShardManager } from "./structs/ShardManager.ts";
+import {
+  createShardManager,
+  startShardManager,
+} from "./structs/ShardManager.ts";
 import { startBot } from "./bot.ts";
 import { logger } from "./utils/logger.ts";
 import { join } from "node:path";
@@ -23,14 +10,9 @@ import { join } from "node:path";
 const mainLogger = logger.withTag("MAIN");
 
 async function main(): Promise<void> {
-  mainLogger.info("Meowsica Discord Bot Starting...");
+  mainLogger.info("Starting bot...");
 
   const config = getConfig();
-
-  
-  mainLogger.info(`Sharding: ${config.enableSharding ? "ENABLED" : "DISABLED"}`);
-  mainLogger.info(`Redis: ${config.enableRedis ? "ENABLED" : "DISABLED"}`);
-  mainLogger.info(`Debug: ${config.debug ? "ENABLED" : "DISABLED"}`);
 
   if (config.enableSharding) {
     await startWithSharding(config);
@@ -39,60 +21,37 @@ async function main(): Promise<void> {
   }
 }
 
-
-
-
-async function startWithSharding(config: ReturnType<typeof getConfig>): Promise<void> {
-  mainLogger.info("Starting in SHARDED mode...");
-
-  
+async function startWithSharding(
+  config: ReturnType<typeof getConfig>,
+): Promise<void> {
   const botFile = join(import.meta.dir, "bot.ts");
-
-  mainLogger.debug(`Bot file path: ${botFile}`);
 
   const manager = createShardManager({
     config,
     botFile,
   });
 
-  
   await startShardManager(manager);
 
-  mainLogger.success("Shard manager running. Press Ctrl+C to stop.");
-
-  
   setupShutdown(() => {
-    mainLogger.info("Shutting down shard manager...");
-    
     process.exit(0);
   });
 }
 
-
-
-
 async function startDirect(): Promise<void> {
-  mainLogger.info("Starting in DIRECT mode (no sharding)...");
-
   const client = await startBot();
 
-  
   setupShutdown(async () => {
-    mainLogger.info("Shutting down bot...");
     await client.shutdown();
     process.exit(0);
   });
 }
-
-
-
 
 function setupShutdown(handler: () => void | Promise<void>): void {
   const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
 
   for (const signal of signals) {
     process.on(signal, () => {
-      mainLogger.info(`Received ${signal}, initiating shutdown...`);
       handler();
     });
   }
@@ -106,7 +65,6 @@ function setupShutdown(handler: () => void | Promise<void>): void {
     mainLogger.error("Unhandled rejection:", reason);
   });
 }
-
 
 main().catch((error) => {
   mainLogger.error("Fatal error:", error);

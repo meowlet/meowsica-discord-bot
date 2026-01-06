@@ -14,12 +14,6 @@ export {
   setServerVoice,
 } from "./db.ts";
 
-
-
-
-
-
-
 export function getLocale(interaction: ChatInputCommandInteraction): Locale {
   const userLocale = getUserLocale(interaction.user.id);
   if (userLocale) return userLocale;
@@ -32,13 +26,9 @@ export function getLocale(interaction: ChatInputCommandInteraction): Locale {
   return DEFAULT_LOCALE;
 }
 
-
-
-
-
-
-
-export function getVoiceLanguage(interaction: ChatInputCommandInteraction): Locale {
+export function getVoiceLanguage(
+  interaction: ChatInputCommandInteraction,
+): Locale {
   const userVoice = getUserVoice(interaction.user.id);
   if (userVoice) return userVoice;
 

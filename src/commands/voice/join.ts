@@ -1,9 +1,14 @@
-import { EmbedBuilder, SlashCommandBuilder, GuildMember, MessageFlags } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { joinChannel } from "../voice/manager.ts";
-import { Colors } from "../constants/index.ts";
+import {
+  EmbedBuilder,
+  SlashCommandBuilder,
+  GuildMember,
+  MessageFlags,
+} from "discord.js";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import { joinChannel } from "../../voice/manager.ts";
+import { Colors } from "../../constants/index.ts";
 
 export const join: Command = {
   data: new SlashCommandBuilder()
@@ -40,7 +45,9 @@ export const join: Command = {
       const embed = new EmbedBuilder()
         .setTitle(t(locale, "commands.join.success"))
         .setDescription(
-          t(locale, "commands.join.joinedChannel", { channel: voiceChannel.name })
+          t(locale, "commands.join.joinedChannel", {
+            channel: voiceChannel.name,
+          }),
         )
         .setColor(Colors.Success);
 

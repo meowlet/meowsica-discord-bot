@@ -4,11 +4,15 @@ import {
   GuildMember,
   MessageFlags,
 } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { joinChannel, isConnected, getConnectionChannelId } from "../voice/manager.ts";
-import { Colors } from "../constants/index.ts";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import {
+  joinChannel,
+  isConnected,
+  getConnectionChannelId,
+} from "../../voice/manager.ts";
+import { Colors } from "../../constants/index.ts";
 import {
   queueTTS,
   isValidVoiceLanguage,
@@ -17,8 +21,8 @@ import {
   VOICE_LANGUAGE_CODES,
   getVoiceLanguageDisplay,
   type VoiceLanguageCode,
-} from "../tts/index.ts";
-import { getTTSLanguage } from "../settings/tts.ts";
+} from "../../tts/index.ts";
+import { getTTSLanguage } from "../../settings/tts.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -31,20 +35,19 @@ export const say: Command = {
         .setName("message")
         .setDescription(t(DEFAULT_LOCALE, "commands.say.messageOption"))
         .setRequired(true)
-        .setMaxLength(MAX_MESSAGE_LENGTH)
+        .setMaxLength(MAX_MESSAGE_LENGTH),
     )
     .addStringOption((option) =>
       option
         .setName("lang")
         .setDescription(t(DEFAULT_LOCALE, "commands.say.langOption"))
         .setRequired(false)
-        .setAutocomplete(true)
+        .setAutocomplete(true),
     ),
 
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.say.serverOnly"),
@@ -56,7 +59,6 @@ export const say: Command = {
     const member = interaction.member as GuildMember;
     const voiceChannel = member.voice.channel;
 
-    
     if (!voiceChannel) {
       await interaction.reply({
         content: t(locale, "commands.say.notInVoice"),
@@ -67,7 +69,6 @@ export const say: Command = {
 
     const guildId = interaction.guild.id;
 
-    
     if (isConnected(guildId)) {
       const botChannelId = getConnectionChannelId(guildId);
       if (botChannelId && botChannelId !== voiceChannel.id) {
@@ -79,11 +80,9 @@ export const say: Command = {
       }
     }
 
-    
     const message = interaction.options.getString("message", true);
     const langOption = interaction.options.getString("lang");
 
-    
     let language: VoiceLanguageCode;
     if (langOption) {
       if (!isValidVoiceLanguage(langOption)) {
@@ -95,11 +94,9 @@ export const say: Command = {
       }
       language = langOption;
     } else {
-      
       language = getTTSLanguage(interaction);
     }
 
-    
     const validation = validateTTSText(message);
     if (!validation.valid) {
       await interaction.reply({
@@ -112,20 +109,17 @@ export const say: Command = {
     await interaction.deferReply();
 
     try {
-      
       if (!isConnected(guildId)) {
         await joinChannel(voiceChannel);
       }
 
-      
       const { queued, position } = queueTTS(
         guildId,
         message,
         language,
-        interaction.user.id
+        interaction.user.id,
       );
 
-      
       const displayMessage =
         message.length > 100 ? message.slice(0, 100) + "..." : message;
 
@@ -135,7 +129,7 @@ export const say: Command = {
 
       if (queued) {
         embed.setDescription(
-          t(locale, "commands.say.queued", { message: displayMessage })
+          t(locale, "commands.say.queued", { message: displayMessage }),
         );
         embed.addFields({
           name: "Queue Position",
@@ -144,7 +138,7 @@ export const say: Command = {
         });
       } else {
         embed.setDescription(
-          t(locale, "commands.say.speaking", { message: displayMessage })
+          t(locale, "commands.say.speaking", { message: displayMessage }),
         );
       }
 
@@ -165,12 +159,10 @@ export const say: Command = {
     }
   },
 
-  
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused().toLowerCase();
 
-    
-    const { VOICE_LANGUAGES } = await import("../tts/voices.ts");
+    const { VOICE_LANGUAGES } = await import("../../tts/voices.ts");
 
     const filtered = VOICE_LANGUAGE_CODES.filter((code) => {
       const lang = VOICE_LANGUAGES[code];
@@ -180,7 +172,7 @@ export const say: Command = {
         lang.name.toLowerCase().includes(focusedValue) ||
         (lang.nativeName?.toLowerCase().includes(focusedValue) ?? false)
       );
-    }).slice(0, 25); 
+    }).slice(0, 25);
 
     await interaction.respond(
       filtered.map((code) => {
@@ -189,7 +181,7 @@ export const say: Command = {
           name: `${lang.emoji} ${lang.name} (${code})`,
           value: code,
         };
-      })
+      }),
     );
   },
 };

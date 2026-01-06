@@ -1,30 +1,16 @@
-
-
-
-
-
-
-
-import { ttsLogger } from "../utils/logger.ts";
 import type { VoiceLanguageCode } from "./voices.ts";
 
 export interface TTSPayload {
-  
   url: string;
-  
+
   text: string;
-  
+
   language: VoiceLanguageCode;
 }
 
-
 const MAX_TEXT_LENGTH = 200;
 
-
 const GOOGLE_TTS_BASE = "https://translate.google.com/translate_tts";
-
-
-
 
 function generateTTSUrl(text: string, language: string): string {
   const params = new URLSearchParams({
@@ -32,18 +18,13 @@ function generateTTSUrl(text: string, language: string): string {
     q: text,
     tl: language,
     client: "tw-ob",
-    ttsspeed: "1", 
+    ttsspeed: "1",
   });
 
   return `${GOOGLE_TTS_BASE}?${params.toString()}`;
 }
 
-
-
-
-
 function splitText(text: string): string[] {
-  
   if (text.length <= MAX_TEXT_LENGTH) {
     return [text];
   }
@@ -110,25 +91,25 @@ function sanitizeText(text: string): string {
     text
       // Replace URLs with a spoken indicator
       .replace(/https?:\/\/[^\s]+/gi, "link")
-      
+
       .replace(/<@!?\d+>/g, "someone")
-      
+
       .replace(/<#\d+>/g, "a channel")
-      
+
       .replace(/<@&\d+>/g, "a role")
-      
+
       .replace(/<a?:\w+:\d+>/g, "")
       // Remove markdown bold/italic
       .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
-      
+
       .replace(/__([^_]+)__/g, "$1")
-      
+
       .replace(/~~([^~]+)~~/g, "$1")
-      
+
       .replace(/\|\|([^|]+)\|\|/g, "$1")
-      
+
       .replace(/```[\s\S]*?```/g, "code block")
-      
+
       .replace(/`([^`]+)`/g, "$1")
       // Collapse multiple spaces
       .replace(/\s+/g, " ")
@@ -142,7 +123,7 @@ function sanitizeText(text: string): string {
  */
 export function createTTSPayloads(
   text: string,
-  language: VoiceLanguageCode
+  language: VoiceLanguageCode,
 ): TTSPayload[] {
   const sanitized = sanitizeText(text);
 
@@ -152,19 +133,12 @@ export function createTTSPayloads(
 
   const segments = splitText(sanitized);
 
-  ttsLogger.debug(
-    `Created ${segments.length} TTS segment(s) for "${sanitized.slice(0, 50)}..."`
-  );
-
   return segments.map((segment) => ({
     url: generateTTSUrl(segment, language),
     text: segment,
     language,
   }));
 }
-
-
-
 
 export function validateTTSText(text: string): {
   valid: boolean;

@@ -1,8 +1,8 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { Colors } from "../constants/index.ts";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import { Colors } from "../../constants/index.ts";
 
 export const ping: Command = {
   data: new SlashCommandBuilder()
@@ -36,7 +36,7 @@ export const ping: Command = {
           name: t(locale, "commands.ping.apiLatency"),
           value: `\`${apiLatency}ms\``,
           inline: true,
-        }
+        },
       )
       .setColor(Colors.Primary);
 

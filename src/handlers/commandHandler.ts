@@ -9,7 +9,7 @@ import { commandLogger } from "../utils/logger.ts";
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
 export async function handleCommand(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const command = commandMap.get(interaction.commandName);
 
@@ -30,15 +30,21 @@ export async function handleCommand(
     const errorMessage = "There was an error executing this command!";
 
     if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
+      await interaction.followUp({
+        content: errorMessage,
+        flags: MessageFlags.Ephemeral,
+      });
     } else {
-      await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
+      await interaction.reply({
+        content: errorMessage,
+        flags: MessageFlags.Ephemeral,
+      });
     }
   }
 }
 
 export async function handleAutocomplete(
-  interaction: AutocompleteInteraction
+  interaction: AutocompleteInteraction,
 ): Promise<void> {
   const command = commandMap.get(interaction.commandName);
 
@@ -51,7 +57,7 @@ export async function handleAutocomplete(
   } catch (error) {
     commandLogger.error(
       `Error in autocomplete for /${interaction.commandName}:`,
-      error
+      error,
     );
   }
 }

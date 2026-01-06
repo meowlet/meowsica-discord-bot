@@ -4,12 +4,16 @@ import {
   GuildMember,
   MessageFlags,
 } from "discord.js";
-import type { Command } from "../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../i18n/index.ts";
-import { getLocale } from "../settings/index.ts";
-import { leaveChannel, isConnected, getConnectionChannelId } from "../voice/manager.ts";
-import { Colors } from "../constants/index.ts";
-import { clearQueue, cleanupPlayer } from "../tts/index.ts";
+import type { Command } from "../../types/command.ts";
+import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { getLocale } from "../../settings/index.ts";
+import {
+  leaveChannel,
+  isConnected,
+  getConnectionChannelId,
+} from "../../voice/manager.ts";
+import { Colors } from "../../constants/index.ts";
+import { clearQueue, cleanupPlayer } from "../../tts/index.ts";
 
 export const stop: Command = {
   data: new SlashCommandBuilder()
@@ -19,7 +23,6 @@ export const stop: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    
     if (!interaction.guild) {
       await interaction.reply({
         content: t(locale, "commands.stop.serverOnly"),
@@ -30,7 +33,6 @@ export const stop: Command = {
 
     const guildId = interaction.guild.id;
 
-    
     if (!isConnected(guildId)) {
       await interaction.reply({
         content: t(locale, "commands.stop.notConnected"),
@@ -39,7 +41,6 @@ export const stop: Command = {
       return;
     }
 
-    
     const member = interaction.member as GuildMember;
     const voiceChannel = member.voice.channel;
     const botChannelId = getConnectionChannelId(guildId);
@@ -52,13 +53,10 @@ export const stop: Command = {
       return;
     }
 
-    
     const clearedCount = clearQueue(guildId);
 
-    
     cleanupPlayer(guildId);
 
-    
     leaveChannel(guildId);
 
     const embed = new EmbedBuilder()
@@ -69,7 +67,9 @@ export const stop: Command = {
     if (clearedCount > 0) {
       embed.addFields({
         name: "Queue",
-        value: t(locale, "commands.stop.cleared", { count: clearedCount.toString() }),
+        value: t(locale, "commands.stop.cleared", {
+          count: clearedCount.toString(),
+        }),
         inline: true,
       });
     }

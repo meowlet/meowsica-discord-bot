@@ -22,21 +22,14 @@ const commandData = commands.map((cmd) => cmd.data.toJSON());
 
 async function deployCommands() {
   try {
-    botLogger.info(`Started refreshing ${commandData.length} application commands.`);
-
     if (guildId) {
-      
-      const data = await rest.put(
-        Routes.applicationGuildCommands(clientId, guildId),
-        { body: commandData }
-      );
-      botLogger.success(`Successfully reloaded ${(data as unknown[]).length} guild commands.`);
-    } else {
-      
-      const data = await rest.put(Routes.applicationCommands(clientId), {
+      await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
         body: commandData,
       });
-      botLogger.success(`Successfully reloaded ${(data as unknown[]).length} global commands.`);
+    } else {
+      await rest.put(Routes.applicationCommands(clientId), {
+        body: commandData,
+      });
     }
   } catch (error) {
     botLogger.error("Error deploying commands:", error);

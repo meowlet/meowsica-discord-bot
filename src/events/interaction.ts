@@ -5,7 +5,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import type { BotClient } from "../structs/BotClient.ts";
-import { commands } from "../commands/index.ts";
+import { commands } from "../commands.ts";
 import { commandLogger } from "../utils/logger.ts";
 
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));

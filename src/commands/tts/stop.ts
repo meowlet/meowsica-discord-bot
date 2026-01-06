@@ -6,14 +6,14 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import {
   leaveChannel,
   isConnected,
   getConnectionChannelId,
 } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
-import { clearQueue, cleanupPlayer } from "../../tts/index.ts";
+import { clearQueue, cleanupPlayer } from "../../tts/player.ts";
 
 export const stop: Command = {
   data: new SlashCommandBuilder()

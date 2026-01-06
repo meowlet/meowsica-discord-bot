@@ -1,8 +1,8 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { commands } from "../index.ts";
+import { commands } from "../../commands.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 
 type CommandCategory = "voice" | "tts" | "config" | "misc";

@@ -3,6 +3,8 @@ export const Colors = {
 
   Success: 0x57f287,
 
+  Warning: 0xfee75c,
+
   Error: 0xed4245,
 } as const;
 

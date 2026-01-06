@@ -85,6 +85,7 @@ export function loadConfig(): BotConfig {
   return {
     token: getEnvString("DISCORD_TOKEN"),
     clientId,
+    ownerId: getEnvStringOrNull("OWNER_ID"),
     enableSharding,
     shardCount: getShardCount("SHARD_COUNT", "auto"),
     enableRedis,
@@ -94,6 +95,7 @@ export function loadConfig(): BotConfig {
     testingGuildId:
       getEnvStringOrNull("TESTING_GUILD_ID") ||
       getEnvStringOrNull("DISCORD_GUILD_ID"),
+    googleCloudApiKey: getEnvStringOrNull("GOOGLE_CLOUD_API_KEY"),
   };
 }
 

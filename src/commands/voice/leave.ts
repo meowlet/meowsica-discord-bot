@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import {
   leaveChannel,
   isConnected,

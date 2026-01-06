@@ -121,5 +121,42 @@ export default {
       moreItems: "...and {count} more",
       totalItems: "{count} message(s) in queue",
     },
+    encoreAdmin: {
+      description: "Manage Meowsica Encore premium subscriptions",
+      noPermission: "You don't have permission to use this command.",
+      grant: {
+        description: "Grant Encore premium to a user",
+        userOption: "The user to grant premium to",
+        daysOption: "Number of days (leave empty for lifetime)",
+        success: "Encore Granted",
+        grantedDays: "Granted **{user}** Meowsica Encore for **{days} days**!",
+        grantedLifetime: "Granted **{user}** lifetime Meowsica Encore!",
+      },
+      revoke: {
+        description: "Revoke Encore premium from a user",
+        userOption: "The user to revoke premium from",
+        success: "Encore Revoked",
+        revoked: "Revoked Meowsica Encore from **{user}**.",
+      },
+      check: {
+        description: "Check a user's Encore status",
+        userOption: "The user to check",
+        title: "Encore Status",
+        user: "User",
+        status: "Status",
+        active: "Active",
+        inactive: "Inactive",
+        expired: "Expired",
+        expiresAt: "Expires",
+        lifetime: "Lifetime",
+      },
+    },
+  },
+
+  encore: {
+    badge: "✨ Meowsica Encore",
+    modeActive: "Using premium Wavenet voice",
+    expired: "Your Encore subscription has expired.",
+    notAvailable: "Wavenet voices are currently unavailable.",
   },
 };

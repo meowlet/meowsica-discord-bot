@@ -6,10 +6,10 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import { isConnected, getConnectionChannelId } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
-import { skipCurrent, getQueueStatus } from "../../tts/index.ts";
+import { skipCurrent, getQueueStatus } from "../../tts/player.ts";
 
 export const skip: Command = {
   data: new SlashCommandBuilder()

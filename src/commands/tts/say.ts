@@ -6,22 +6,22 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import {
   joinChannel,
   isConnected,
   getConnectionChannelId,
 } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
+import { queueTTS } from "../../tts/player.ts";
 import {
-  queueTTS,
   isValidVoiceLanguage,
-  validateTTSText,
   DEFAULT_VOICE_LANGUAGE,
   VOICE_LANGUAGE_CODES,
   getVoiceLanguageDisplay,
   type VoiceLanguageCode,
-} from "../../tts/index.ts";
+} from "../../tts/voices.ts";
+import { validateTTSText } from "../../tts/provider.ts";
 import { getTTSLanguage } from "../../settings/tts.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
@@ -113,7 +113,7 @@ export const say: Command = {
         await joinChannel(voiceChannel);
       }
 
-      const { queued, position } = queueTTS(
+      const { queued, position, isEncoreMode } = queueTTS(
         guildId,
         message,
         language,
@@ -123,9 +123,13 @@ export const say: Command = {
       const displayMessage =
         message.length > 100 ? message.slice(0, 100) + "..." : message;
 
+      const title = isEncoreMode
+        ? `${t(locale, "encore.badge")} - ${t(locale, "commands.say.success")}`
+        : t(locale, "commands.say.success");
+
       const embed = new EmbedBuilder()
-        .setTitle(t(locale, "commands.say.success"))
-        .setColor(Colors.Success);
+        .setTitle(title)
+        .setColor(isEncoreMode ? 0xffd700 : Colors.Success);
 
       if (queued) {
         embed.setDescription(
@@ -147,6 +151,10 @@ export const say: Command = {
         value: getVoiceLanguageDisplay(language),
         inline: true,
       });
+
+      if (isEncoreMode) {
+        embed.setFooter({ text: t(locale, "encore.modeActive") });
+      }
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

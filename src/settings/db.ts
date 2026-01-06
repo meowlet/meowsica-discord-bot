@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
-import type { Locale } from "../i18n/index.ts";
+import type { ChatInputCommandInteraction } from "discord.js";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/index.ts";
 
 const db = new Database("settings.db");
 
@@ -8,6 +9,8 @@ db.run(`
     user_id TEXT PRIMARY KEY,
     locale_language TEXT,
     voice_language TEXT,
+    is_premium INTEGER DEFAULT 0,
+    premium_until INTEGER,
     created_at INTEGER DEFAULT (unixepoch()),
     updated_at INTEGER DEFAULT (unixepoch())
   )
@@ -30,6 +33,12 @@ try {
   db.run(`ALTER TABLE user_settings ADD COLUMN voice_language TEXT`);
 } catch {}
 try {
+  db.run(`ALTER TABLE user_settings ADD COLUMN is_premium INTEGER DEFAULT 0`);
+} catch {}
+try {
+  db.run(`ALTER TABLE user_settings ADD COLUMN premium_until INTEGER`);
+} catch {}
+try {
   db.run(`ALTER TABLE server_settings ADD COLUMN locale_language TEXT`);
 } catch {}
 try {
@@ -48,6 +57,8 @@ try {
 type UserSettingsRow = {
   locale_language: string | null;
   voice_language: string | null;
+  is_premium: number;
+  premium_until: number | null;
 };
 
 type ServerSettingsRow = {
@@ -55,12 +66,26 @@ type ServerSettingsRow = {
   voice_language: string | null;
 };
 
+type PremiumRow = {
+  is_premium: number;
+  premium_until: number | null;
+};
+
 const getUserSettings = db.prepare<UserSettingsRow, [string]>(
-  "SELECT locale_language, voice_language FROM user_settings WHERE user_id = ?",
+  "SELECT locale_language, voice_language, is_premium, premium_until FROM user_settings WHERE user_id = ?",
 );
 
 const getServerSettings = db.prepare<ServerSettingsRow, [string]>(
   "SELECT locale_language, voice_language FROM server_settings WHERE server_id = ?",
+);
+
+const getUserPremium = db.prepare<PremiumRow, [string]>(
+  "SELECT is_premium, premium_until FROM user_settings WHERE user_id = ?",
+);
+
+const upsertUserPremium = db.prepare(
+  `INSERT INTO user_settings (user_id, is_premium, premium_until, updated_at) VALUES (?, ?, ?, unixepoch())
+   ON CONFLICT(user_id) DO UPDATE SET is_premium = excluded.is_premium, premium_until = excluded.premium_until, updated_at = unixepoch()`,
 );
 
 const upsertUserLocale = db.prepare(
@@ -117,4 +142,84 @@ export function getServerVoice(serverId: string): Locale | null {
 
 export function setServerVoice(serverId: string, voice: Locale): void {
   upsertServerVoice.run(serverId, voice);
+}
+
+export function getLocale(interaction: ChatInputCommandInteraction): Locale {
+  const userLocale = getUserLocale(interaction.user.id);
+  if (userLocale) return userLocale;
+
+  if (interaction.guildId) {
+    const serverLocale = getServerLocale(interaction.guildId);
+    if (serverLocale) return serverLocale;
+  }
+
+  return DEFAULT_LOCALE;
+}
+
+export function getVoiceLanguage(
+  interaction: ChatInputCommandInteraction,
+): Locale {
+  const userVoice = getUserVoice(interaction.user.id);
+  if (userVoice) return userVoice;
+
+  if (interaction.guildId) {
+    const serverVoice = getServerVoice(interaction.guildId);
+    if (serverVoice) return serverVoice;
+  }
+
+  return DEFAULT_LOCALE;
+}
+
+export interface PremiumStatus {
+  isPremium: boolean;
+  premiumUntil: Date | null;
+  isExpired: boolean;
+}
+
+/**
+ * Check if a user has active premium status
+ */
+export function isPremiumUser(userId: string): boolean {
+  const row = getUserPremium.get(userId);
+  if (!row || !row.is_premium) return false;
+  if (row.premium_until === null) return true;
+  return row.premium_until * 1000 > Date.now();
+}
+
+/**
+ * Get detailed premium status for a user
+ */
+export function getPremiumStatus(userId: string): PremiumStatus {
+  const row = getUserPremium.get(userId);
+  if (!row) {
+    return { isPremium: false, premiumUntil: null, isExpired: false };
+  }
+  const premiumUntil = row.premium_until
+    ? new Date(row.premium_until * 1000)
+    : null;
+  const isExpired = premiumUntil ? premiumUntil.getTime() < Date.now() : false;
+  const isPremium = row.is_premium === 1 && !isExpired;
+  return { isPremium, premiumUntil, isExpired };
+}
+
+/**
+ * Set premium status for a user
+ * @param userId Discord user ID
+ * @param durationDays Number of days of premium, or null for lifetime
+ */
+export function setUserPremium(
+  userId: string,
+  durationDays: number | null,
+): void {
+  const premiumUntil = durationDays
+    ? Math.floor((Date.now() + durationDays * 24 * 60 * 60 * 1000) / 1000)
+    : null;
+  upsertUserPremium.run(userId, 1, premiumUntil);
+}
+
+/**
+ * Remove premium status from a user
+ */
+export function removeUserPremium(userId: string): void {
+  upsertUserPremium.run(userId, 0, null);
 }

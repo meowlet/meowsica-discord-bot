@@ -123,5 +123,42 @@ export default {
       moreItems: "...và {count} tin nhắn khác",
       totalItems: "{count} tin nhắn trong hàng đợi",
     },
+    encoreAdmin: {
+      description: "Quản lý gói Meowsica Encore premium",
+      noPermission: "Bạn không có quyền sử dụng lệnh này.",
+      grant: {
+        description: "Cấp Encore premium cho người dùng",
+        userOption: "Người dùng được cấp premium",
+        daysOption: "Số ngày (để trống cho vĩnh viễn)",
+        success: "Đã cấp Encore",
+        grantedDays: "Đã cấp **{user}** Meowsica Encore trong **{days} ngày**!",
+        grantedLifetime: "Đã cấp **{user}** Meowsica Encore vĩnh viễn!",
+      },
+      revoke: {
+        description: "Thu hồi Encore premium từ người dùng",
+        userOption: "Người dùng bị thu hồi premium",
+        success: "Đã thu hồi Encore",
+        revoked: "Đã thu hồi Meowsica Encore từ **{user}**.",
+      },
+      check: {
+        description: "Kiểm tra trạng thái Encore của người dùng",
+        userOption: "Người dùng cần kiểm tra",
+        title: "Trạng thái Encore",
+        user: "Người dùng",
+        status: "Trạng thái",
+        active: "Đang hoạt động",
+        inactive: "Không hoạt động",
+        expired: "Đã hết hạn",
+        expiresAt: "Hết hạn",
+        lifetime: "Vĩnh viễn",
+      },
+    },
+  },
+
+  encore: {
+    badge: "✨ Meowsica Encore",
+    modeActive: "Đang sử dụng giọng Wavenet cao cấp",
+    expired: "Gói Encore của bạn đã hết hạn.",
+    notAvailable: "Giọng Wavenet hiện không khả dụng.",
   },
 };

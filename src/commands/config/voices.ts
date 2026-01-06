@@ -1,9 +1,9 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
-import { getSortedVoiceLanguages } from "../../tts/index.ts";
+import { getSortedVoiceLanguages } from "../../tts/voices.ts";
 
 const LANGUAGES_PER_PAGE = 15;
 

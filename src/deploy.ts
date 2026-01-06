@@ -1,5 +1,5 @@
 import { REST, Routes } from "discord.js";
-import { commands } from "./commands/index.ts";
+import { commands } from "./commands.ts";
 import { botLogger } from "./utils/logger.ts";
 
 function getConfig() {

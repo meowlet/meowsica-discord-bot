@@ -1,4 +1,8 @@
 import type { VoiceLanguageCode } from "./voices.ts";
+import { getConfig } from "../config/index.ts";
+import { ttsLogger } from "../utils/logger.ts";
+
+export type TTSProviderType = "standard" | "wavenet";
 
 export interface TTSPayload {
   url: string;
@@ -6,11 +10,168 @@ export interface TTSPayload {
   text: string;
 
   language: VoiceLanguageCode;
+
+  provider: TTSProviderType;
+}
+
+export interface WavenetAudioResult {
+  audioContent: Buffer;
+  provider: "wavenet";
+}
+
+export interface StandardAudioResult {
+  url: string;
+  provider: "standard";
+}
+
+export type AudioResult = WavenetAudioResult | StandardAudioResult;
+
+interface GoogleCloudTTSRequest {
+  input: { text: string };
+  voice: {
+    languageCode: string;
+    name?: string;
+    ssmlGender?: "NEUTRAL" | "MALE" | "FEMALE";
+  };
+  audioConfig: {
+    audioEncoding: "MP3" | "OGG_OPUS" | "LINEAR16";
+    speakingRate?: number;
+    pitch?: number;
+  };
+}
+
+interface GoogleCloudTTSResponse {
+  audioContent: string;
 }
 
 const MAX_TEXT_LENGTH = 200;
 
 const GOOGLE_TTS_BASE = "https://translate.google.com/translate_tts";
+const GOOGLE_CLOUD_TTS_BASE =
+  "https://texttospeech.googleapis.com/v1/text:synthesize";
+
+const WAVENET_VOICE_MAP: Record<string, string> = {
+  en: "en-US-Wavenet-D",
+  vi: "vi-VN-Wavenet-A",
+  ja: "ja-JP-Wavenet-B",
+  ko: "ko-KR-Wavenet-A",
+  fr: "fr-FR-Wavenet-A",
+  de: "de-DE-Wavenet-A",
+  es: "es-ES-Wavenet-B",
+  it: "it-IT-Wavenet-A",
+  pt: "pt-BR-Wavenet-A",
+  ru: "ru-RU-Wavenet-A",
+  cmn: "cmn-CN-Wavenet-A",
+  ar: "ar-XA-Wavenet-A",
+  hi: "hi-IN-Wavenet-A",
+  id: "id-ID-Wavenet-A",
+  nl: "nl-NL-Wavenet-A",
+  pl: "pl-PL-Wavenet-A",
+  tr: "tr-TR-Wavenet-A",
+  th: "th-TH-Standard-A",
+  uk: "uk-UA-Wavenet-A",
+  cs: "cs-CZ-Wavenet-A",
+  da: "da-DK-Wavenet-A",
+  el: "el-GR-Wavenet-A",
+  fi: "fi-FI-Wavenet-A",
+  hu: "hu-HU-Wavenet-A",
+  nb: "nb-NO-Wavenet-A",
+  ro: "ro-RO-Wavenet-A",
+  sk: "sk-SK-Wavenet-A",
+  sv: "sv-SE-Wavenet-A",
+  bn: "bn-IN-Wavenet-A",
+  ta: "ta-IN-Wavenet-A",
+  te: "te-IN-Standard-A",
+  ml: "ml-IN-Wavenet-A",
+  mr: "mr-IN-Wavenet-A",
+  fil: "fil-PH-Wavenet-A",
+  af: "af-ZA-Standard-A",
+  ca: "ca-ES-Standard-A",
+  hr: "hr-HR-Standard-A",
+  hy: "hy-AM-Standard-A",
+  is: "is-IS-Standard-A",
+  jv: "jv-ID-Standard-A",
+  km: "km-KH-Standard-A",
+  lv: "lv-LV-Standard-A",
+  ne: "ne-NP-Standard-A",
+  si: "si-LK-Standard-A",
+  sr: "sr-RS-Standard-A",
+  su: "su-ID-Standard-A",
+  sw: "sw-KE-Standard-A",
+};
+
+/**
+ * Get the Wavenet voice name for a language code
+ */
+function getWavenetVoice(languageCode: VoiceLanguageCode): string {
+  return WAVENET_VOICE_MAP[languageCode] || `${languageCode}-Standard-A`;
+}
+
+/**
+ * Get the language code in Google Cloud format
+ */
+function getCloudLanguageCode(languageCode: VoiceLanguageCode): string {
+  const voiceName = getWavenetVoice(languageCode);
+  const parts = voiceName.split("-");
+  return parts.slice(0, 2).join("-");
+}
+
+/**
+ * Synthesize speech using Google Cloud TTS (Wavenet)
+ */
+export async function synthesizeWavenet(
+  text: string,
+  language: VoiceLanguageCode,
+): Promise<Buffer | null> {
+  const config = getConfig();
+  const apiKey = config.googleCloudApiKey;
+  if (!apiKey) {
+    ttsLogger.warn("Google Cloud API key not configured, falling back to standard TTS");
+    return null;
+  }
+  const voiceName = getWavenetVoice(language);
+  const languageCode = getCloudLanguageCode(language);
+  const requestBody: GoogleCloudTTSRequest = {
+    input: { text },
+    voice: {
+      languageCode,
+      name: voiceName,
+    },
+    audioConfig: {
+      audioEncoding: "MP3",
+      speakingRate: 1.0,
+      pitch: 0,
+    },
+  };
+  try {
+    const response = await fetch(`${GOOGLE_CLOUD_TTS_BASE}?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      ttsLogger.error(`Wavenet TTS request failed: ${response.status} - ${errorText}`);
+      return null;
+    }
+    const data = (await response.json()) as GoogleCloudTTSResponse;
+    const audioBuffer = Buffer.from(data.audioContent, "base64");
+    return audioBuffer;
+  } catch (error) {
+    ttsLogger.error("Failed to synthesize Wavenet TTS:", error);
+    return null;
+  }
+}
+
+/**
+ * Check if Wavenet TTS is available
+ */
+export function isWavenetAvailable(): boolean {
+  const config = getConfig();
+  return config.googleCloudApiKey !== null;
+}
 
 function generateTTSUrl(text: string, language: string): string {
   const params = new URLSearchParams({
@@ -124,6 +285,7 @@ function sanitizeText(text: string): string {
 export function createTTSPayloads(
   text: string,
   language: VoiceLanguageCode,
+  provider: TTSProviderType = "standard",
 ): TTSPayload[] {
   const sanitized = sanitizeText(text);
 
@@ -137,6 +299,7 @@ export function createTTSPayloads(
     url: generateTTSUrl(segment, language),
     text: segment,
     language,
+    provider,
   }));
 }
 

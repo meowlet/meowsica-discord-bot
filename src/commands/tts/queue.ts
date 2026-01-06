@@ -1,10 +1,11 @@
 import { EmbedBuilder, SlashCommandBuilder, MessageFlags } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
-import { getLocale } from "../../settings/index.ts";
+import { getLocale } from "../../settings/db.ts";
 import { isConnected } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
-import { getQueueStatus, getVoiceLanguageDisplay } from "../../tts/index.ts";
+import { getQueueStatus } from "../../tts/player.ts";
+import { getVoiceLanguageDisplay } from "../../tts/voices.ts";
 
 export const queue: Command = {
   data: new SlashCommandBuilder()

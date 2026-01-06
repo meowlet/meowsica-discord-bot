@@ -3,6 +3,8 @@ export interface BotConfig {
 
   readonly clientId: string;
 
+  readonly ownerId: string | null;
+
   readonly enableSharding: boolean;
 
   readonly shardCount: number | "auto";
@@ -16,6 +18,8 @@ export interface BotConfig {
   readonly debug: boolean;
 
   readonly testingGuildId: string | null;
+
+  readonly googleCloudApiKey: string | null;
 }
 
 export interface RedisConfig {

@@ -8,9 +8,16 @@ import {
 } from "@discordjs/voice";
 import { Readable } from "node:stream";
 import { ttsLogger } from "../utils/logger.ts";
-import { createTTSPayloads, type TTSPayload } from "./provider.ts";
+import {
+  createTTSPayloads,
+  synthesizeWavenet,
+  isWavenetAvailable,
+  type TTSPayload,
+  type TTSProviderType,
+} from "./provider.ts";
 import type { VoiceLanguageCode } from "./voices.ts";
 import { resetTimeout } from "../voice/manager.ts";
+import { isPremiumUser } from "../settings/db.ts";
 
 export interface QueueItem {
   payloads: TTSPayload[];
@@ -20,6 +27,8 @@ export interface QueueItem {
   userId: string;
 
   originalText: string;
+
+  isEncoreMode: boolean;
 }
 
 interface GuildPlayerState {
@@ -89,6 +98,63 @@ function handlePlayerIdle(guildId: string): void {
   }
 }
 
+async function playPayloadWavenet(
+  guildId: string,
+  payload: TTSPayload,
+  state: GuildPlayerState,
+): Promise<boolean> {
+  const audioBuffer = await synthesizeWavenet(payload.text, payload.language);
+  if (!audioBuffer) {
+    return false;
+  }
+  const connection = getVoiceConnection(guildId);
+  if (!connection) {
+    ttsLogger.warn(`No voice connection for guild ${guildId}`);
+    return false;
+  }
+  const stream = Readable.from(audioBuffer);
+  const resource = createAudioResource(stream, {
+    inputType: StreamType.Arbitrary,
+  });
+  connection.subscribe(state.player);
+  state.player.play(resource);
+  state.isPlaying = true;
+  resetTimeout(guildId);
+  return true;
+}
+
+async function playPayloadStandard(
+  guildId: string,
+  payload: TTSPayload,
+  state: GuildPlayerState,
+): Promise<boolean> {
+  const connection = getVoiceConnection(guildId);
+  if (!connection) {
+    ttsLogger.warn(`No voice connection for guild ${guildId}`);
+    return false;
+  }
+  const response = await fetch(payload.url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`TTS request failed: ${response.status}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const stream = Readable.from(buffer);
+  const resource = createAudioResource(stream, {
+    inputType: StreamType.Arbitrary,
+  });
+  connection.subscribe(state.player);
+  state.player.play(resource);
+  state.isPlaying = true;
+  resetTimeout(guildId);
+  return true;
+}
+
 async function playPayload(
   guildId: string,
   payload: TTSPayload,
@@ -96,41 +162,18 @@ async function playPayload(
   const state = guildPlayers.get(guildId);
   if (!state) return;
 
-  const connection = getVoiceConnection(guildId);
-  if (!connection) {
-    ttsLogger.warn(`No voice connection for guild ${guildId}`);
-    return;
-  }
-
   try {
-    const response = await fetch(payload.url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`TTS request failed: ${response.status}`);
+    if (payload.provider === "wavenet") {
+      const success = await playPayloadWavenet(guildId, payload, state);
+      if (!success) {
+        ttsLogger.warn("Wavenet failed, falling back to standard TTS");
+        await playPayloadStandard(guildId, payload, state);
+      }
+    } else {
+      await playPayloadStandard(guildId, payload, state);
     }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const stream = Readable.from(buffer);
-
-    const resource = createAudioResource(stream, {
-      inputType: StreamType.Arbitrary,
-    });
-
-    connection.subscribe(state.player);
-    state.player.play(resource);
-    state.isPlaying = true;
-
-    resetTimeout(guildId);
   } catch (error) {
     ttsLogger.error(`Failed to play TTS payload:`, error);
-
     handlePlayerIdle(guildId);
   }
 }
@@ -148,17 +191,26 @@ function playItem(guildId: string, item: QueueItem): void {
   }
 }
 
+export interface QueueTTSResult {
+  queued: boolean;
+  position: number;
+  isEncoreMode: boolean;
+}
+
 export function queueTTS(
   guildId: string,
   text: string,
   language: VoiceLanguageCode,
   userId: string,
-): { queued: boolean; position: number } {
+): QueueTTSResult {
   const state = getOrCreateState(guildId);
-  const payloads = createTTSPayloads(text, language);
+  const isUserPremium = isPremiumUser(userId);
+  const useWavenet = isUserPremium && isWavenetAvailable();
+  const provider: TTSProviderType = useWavenet ? "wavenet" : "standard";
+  const payloads = createTTSPayloads(text, language, provider);
 
   if (payloads.length === 0) {
-    return { queued: false, position: -1 };
+    return { queued: false, position: -1, isEncoreMode: false };
   }
 
   const item: QueueItem = {
@@ -166,17 +218,18 @@ export function queueTTS(
     currentIndex: 0,
     userId,
     originalText: text,
+    isEncoreMode: useWavenet,
   };
 
   if (!state.isPlaying && !state.currentItem) {
     playItem(guildId, item);
-    return { queued: false, position: 0 };
+    return { queued: false, position: 0, isEncoreMode: useWavenet };
   }
 
   state.queue.push(item);
   const position = state.queue.length;
 
-  return { queued: true, position };
+  return { queued: true, position, isEncoreMode: useWavenet };
 }
 
 export function skipCurrent(guildId: string): boolean {

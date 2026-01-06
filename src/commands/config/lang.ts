@@ -16,7 +16,7 @@ import {
   setServerLocale,
   setUserVoice,
   setServerVoice,
-} from "../../settings/index.ts";
+} from "../../settings/db.ts";
 
 const langChoices = [
   { name: "English", value: "en" },

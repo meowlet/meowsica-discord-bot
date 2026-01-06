@@ -37,3 +37,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 *.db
 *.db-shm
 *.db-wal
+settings.db
+
+
+CONTEXT_DUMP.md
+CLAUDE.md

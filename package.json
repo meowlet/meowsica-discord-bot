@@ -6,7 +6,7 @@
     "start": "bun run src/index.ts",
     "start:direct": "bun run src/bot.ts",
     "dev": "bun --watch src/index.ts",
-    "deploy": "bun run src/deploy-commands.ts",
+    "deploy": "bun run src/deploy.ts",
     "test": "bun test",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\""

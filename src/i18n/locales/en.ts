@@ -236,6 +236,7 @@ export default {
       reset: {
         success: "Settings Reset",
         successDesc: "Your voice settings have been reset to default (Basic Vietnamese).",
+        notOwner: "Only the dashboard owner can reset these settings.",
       },
     },
     language: {

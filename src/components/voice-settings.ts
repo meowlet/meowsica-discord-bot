@@ -365,19 +365,43 @@ export async function handleConfigButton(
 export async function handleResetButton(
   interaction: ButtonInteraction,
 ): Promise<void> {
-  const userId = interaction.user.id;
-  const locale = getUserLocale(userId);
+  const buttonClickerId = interaction.user.id;
+  const locale = getUserLocale(buttonClickerId);
+
+  // OWNERSHIP CHECK: Verify the button clicker is the original dashboard owner
+  const originalOwnerId = interaction.message.interaction?.user.id;
+  if (!originalOwnerId) {
+    // Message doesn't have interaction metadata (edge case)
+    await interaction.reply({
+      content: t(locale, "commands.voice.reset.notOwner"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (buttonClickerId !== originalOwnerId) {
+    // User B clicked Reset on User A's dashboard - deny access
+    await interaction.reply({
+      content: t(locale, "commands.voice.reset.notOwner"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Ownership verified - proceed with reset using original owner's ID
+  const userId = originalOwnerId;
+  const ownerLocale = getUserLocale(userId);
 
   // Reset to defaults
   resetUserToBasicVoice(userId);
 
-  // Update the dashboard embed
-  const embed = buildVoiceDashboardEmbed(userId, locale);
-  const buttons = buildDashboardButtons(locale);
+  // Update the dashboard embed with original owner's data
+  const embed = buildVoiceDashboardEmbed(userId, ownerLocale);
+  const buttons = buildDashboardButtons(ownerLocale);
 
   const successEmbed = new EmbedBuilder()
-    .setTitle(t(locale, "commands.voice.reset.success"))
-    .setDescription(t(locale, "commands.voice.reset.successDesc"))
+    .setTitle(t(ownerLocale, "commands.voice.reset.success"))
+    .setDescription(t(ownerLocale, "commands.voice.reset.successDesc"))
     .setColor(Colors.Success);
 
   // Reply with success message

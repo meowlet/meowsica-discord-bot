@@ -238,6 +238,7 @@ export default {
       reset: {
         success: "Đã Đặt lại Cài đặt",
         successDesc: "Cài đặt giọng nói của bạn đã được đặt lại về mặc định (Basic Tiếng Việt).",
+        notOwner: "Chỉ chủ sở hữu bảng điều khiển mới có thể đặt lại các cài đặt này.",
       },
     },
     language: {

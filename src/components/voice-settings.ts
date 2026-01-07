@@ -548,9 +548,13 @@ export async function handleResetButton(
  * Handle Language select menu
  * 
  * Supports in-place pagination with NAV_NEXT and NAV_PREV options.
- * AUTO-SELECT LOGIC: When a Premium user changes language,
- * automatically select the first available Wavenet voice for that language
- * to prevent stale/invalid voice_name values.
+ * 
+ * AUTO-UPGRADE/DOWNGRADE LOGIC for Premium Users:
+ * - If new language supports Wavenet → Force provider to 'premium' + auto-select first voice
+ * - If new language doesn't support Wavenet → Force provider to 'basic' + clear voice
+ * 
+ * This ensures Premium users always get the best available experience
+ * without needing to manually switch providers.
  */
 export async function handleLanguageSelect(
   interaction: StringSelectMenuInteraction,
@@ -594,8 +598,7 @@ export async function handleLanguageSelect(
   // User picked a real language (e.g., 'vi-VN')
   const selectedLanguage = selectedValue;
 
-  // Get current profile to check provider
-  const currentProfile = getUserTTSProfile(userId);
+  // Check user's premium status for auto-upgrade logic
   const isUserPremium = isPremiumUser(userId);
 
   // CAPABILITY CHECK: Does the NEW language support Wavenet?
@@ -606,30 +609,39 @@ export async function handleLanguageSelect(
     language: selectedLanguage,
   };
 
-  // AUTO-FALLBACK LOGIC:
-  // If the new language doesn't support Wavenet, force Basic mode
-  if (!supportsWavenet) {
-    // Force downgrade to Basic for this language
-    updates.provider = "basic";
-    updates.voiceId = null;
-  } else if (isUserPremium && currentProfile.provider === "premium") {
-    // Language supports Wavenet AND user is in Encore mode
-    // Auto-select first available voice
-    try {
-      const validVoices = await getWavenetVoicesByLanguage(selectedLanguage);
+  // AUTO-UPGRADE/DOWNGRADE LOGIC for Premium Users
+  // Premium users get automatic provider switching based on language capability
+  if (isUserPremium) {
+    if (supportsWavenet) {
+      // --- AUTO-UPGRADE: Language supports Wavenet ---
+      // Force provider to 'premium' regardless of previous state
+      // This ensures Premium users always get Encore when available
+      updates.provider = "premium";
+      
+      try {
+        const validVoices = await getWavenetVoicesByLanguage(selectedLanguage);
 
-      if (validVoices.length > 0) {
-        // Pick the first voice as safe default
-        updates.voiceId = validVoices[0]?.value || null;
-      } else {
-        // Edge case: hasWavenetSupport returned true but no voices (shouldn't happen)
+        if (validVoices.length > 0) {
+          // Pick the first voice as safe default
+          updates.voiceId = validVoices[0]?.value || null;
+        } else {
+          // Edge case: hasWavenetSupport returned true but no voices (shouldn't happen)
+          updates.voiceId = null;
+        }
+      } catch (error) {
+        console.error("Failed to fetch voices for auto-select:", error);
+        // On error, clear the voice to prevent stale value
         updates.voiceId = null;
       }
-    } catch (error) {
-      console.error("Failed to fetch voices for auto-select:", error);
-      // On error, clear the voice to prevent stale value
+    } else {
+      // --- AUTO-DOWNGRADE: Language doesn't support Wavenet ---
+      updates.provider = "basic";
       updates.voiceId = null;
     }
+  } else {
+    // Free User: Always Basic, clear any voice model
+    updates.provider = "basic";
+    updates.voiceId = null;
   }
 
   // Update database
@@ -658,6 +670,10 @@ export async function handleLanguageSelect(
 
 /**
  * Handle Provider select menu
+ * 
+ * AUTO-SELECT LOGIC: When switching to Premium (Encore),
+ * automatically select the first available Wavenet voice for the user's
+ * current language to prevent stale/invalid voice_name values.
  */
 export async function handleProviderSelect(
   interaction: StringSelectMenuInteraction,
@@ -683,13 +699,40 @@ export async function handleProviderSelect(
     return;
   }
 
-  // Update provider in database
-  // If switching to basic, clear the voice ID
+  // Get current profile to access user's language
+  const currentProfile = getUserTTSProfile(userId);
+
+  // Build the update object
+  const updates: { provider: "basic" | "premium"; voiceId?: string | null } = {
+    provider: selectedProvider as "basic" | "premium",
+  };
+
   if (selectedProvider === "basic") {
-    setUserTTSProfile(userId, { provider: "basic", voiceId: null });
+    // Switching to Basic -> Clear the voice model
+    updates.voiceId = null;
   } else {
-    setUserTTSProfile(userId, { provider: selectedProvider as "basic" | "premium" });
+    // Switching to Premium (Encore) -> Auto-select first available voice
+    const currentLang = currentProfile.language || "vi-VN";
+    
+    try {
+      const validVoices = await getWavenetVoicesByLanguage(currentLang);
+      
+      if (validVoices.length > 0) {
+        // Pick the first voice as safe default
+        updates.voiceId = validVoices[0]?.value || null;
+      } else {
+        // Language has no Wavenet support - clear voice
+        updates.voiceId = null;
+      }
+    } catch (error) {
+      console.error("Failed to fetch voices for auto-select on provider change:", error);
+      // On error, clear the voice to prevent stale value
+      updates.voiceId = null;
+    }
   }
+
+  // Update database with provider AND voice in one call
+  setUserTTSProfile(userId, updates);
 
   // Rebuild the config interface with updated provider
   const { embed, rows } = await buildConfigInterface(userId, locale);

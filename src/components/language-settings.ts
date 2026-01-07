@@ -182,7 +182,7 @@ export async function handleLanguageCloseButton(
   } catch (error) {
     // If we can't delete, just acknowledge
     await interaction.reply({
-      content: "",
+      content: "OK",
       flags: MessageFlags.Ephemeral,
     });
   }

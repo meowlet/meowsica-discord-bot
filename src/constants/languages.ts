@@ -31,7 +31,7 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
   // === PAGE 1 (A-I, alphabetical) ===
   { name: "Afrikaans", nativeName: "Afrikaans", code: "af", cloudCode: "af-ZA", flag: "🇿🇦" },
   { name: "Arabic", nativeName: "العربية", code: "ar", cloudCode: "ar-XA", flag: "🇸🇦" },
-  { name: "Armenian", nativeName: "Հայdelays", code: "hy", cloudCode: "hy-AM", flag: "🇦🇲" },
+  { name: "Armenian", nativeName: "Հայերեն", code: "hy", cloudCode: "hy-AM", flag: "🇦🇲" },
   { name: "Bengali", nativeName: "বাংলা", code: "bn", cloudCode: "bn-IN", flag: "🇧🇩" },
   { name: "Catalan", nativeName: "Català", code: "ca", cloudCode: "ca-ES", flag: "🇪🇸" },
   { name: "Croatian", nativeName: "Hrvatski", code: "hr", cloudCode: "hr-HR", flag: "🇭🇷" },

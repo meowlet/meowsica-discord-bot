@@ -51,7 +51,7 @@ export const help: Command = {
     const locale = getLocale(interaction);
 
     // Filter out admin commands from help display
-    const visibleCommands = commands.filter(cmd => cmd.data.name !== "encoreadmin");
+    const visibleCommands = commands.filter(cmd => cmd.data.name !== "encore-admin");
     const commandInfos = visibleCommands.map((cmd) => getCommandInfo(cmd, locale));
 
     const categories: Record<CommandCategory, CommandInfo[]> = {

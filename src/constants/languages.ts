@@ -77,10 +77,23 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
 
 /**
  * Get supported language by short code
+ * Handles both exact matches (e.g., "zh-CN") and short code matches (e.g., "zh")
  */
 export function getSupportedLanguageByCode(code: string): SupportedLanguage | undefined {
+  // First try exact match (handles cases like "zh-CN" === "zh-CN")
+  const exactMatch = SUPPORTED_LANGUAGES.find((lang) => lang.code === code);
+  if (exactMatch) {
+    return exactMatch;
+  }
+  // If no exact match, try matching by short code
+  // Extract shortCode from input and compare with each language's code
   const shortCode = code.includes("-") ? code.split("-")[0] : code;
-  return SUPPORTED_LANGUAGES.find((lang) => lang.code === shortCode);
+  return SUPPORTED_LANGUAGES.find((lang) => {
+    // If lang.code contains "-", extract its shortCode for comparison
+    // Otherwise compare directly
+    const langShortCode = lang.code.includes("-") ? lang.code.split("-")[0] : lang.code;
+    return langShortCode === shortCode;
+  });
 }
 
 /**

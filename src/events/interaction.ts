@@ -54,18 +54,31 @@ async function handleCommand(
   } catch (error) {
     commandLogger.error(`Error executing /${interaction.commandName}:`, error);
 
+    // Don't try to respond if it's already an interaction acknowledgment error
+    const isAcknowledgeError = error instanceof Error && 
+      (error.message.includes("already been acknowledged") || 
+       error.message.includes("Unknown interaction"));
+    
+    if (isAcknowledgeError) {
+      return; // Silently ignore - user already got a response or interaction expired
+    }
+
     const errorMessage = "There was an error executing this command!";
 
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({
-        content: errorMessage,
-        flags: MessageFlags.Ephemeral,
-      });
-    } else {
-      await interaction.reply({
-        content: errorMessage,
-        flags: MessageFlags.Ephemeral,
-      });
+    try {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({
+          content: errorMessage,
+          flags: MessageFlags.Ephemeral,
+        });
+      } else {
+        await interaction.reply({
+          content: errorMessage,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    } catch {
+      // Ignore errors when trying to respond - interaction may have expired
     }
   }
 }

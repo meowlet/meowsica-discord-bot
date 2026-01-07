@@ -14,13 +14,8 @@ import {
 } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
 import { queueTTS } from "../../tts/player.ts";
-import { type VoiceLanguageCode } from "../../tts/voices.ts";
 import { validateTTSText } from "../../tts/provider.ts";
 import { getTTSLanguage } from "../../settings/tts.ts";
-import {
-  filterSupportedLanguages,
-  isSupportedLanguage,
-} from "../../constants/languages.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -40,16 +35,6 @@ export const say: Command = {
         })
         .setRequired(true)
         .setMaxLength(MAX_MESSAGE_LENGTH),
-    )
-    .addStringOption((option) =>
-      option
-        .setName("lang")
-        .setDescription("Language for TTS (overrides your default)")
-        .setDescriptionLocalizations({
-          vi: "Ngon ngu TTS (ghi de mac dinh cua ban)",
-        })
-        .setRequired(false)
-        .setAutocomplete(true),
     ),
 
   async execute(interaction) {
@@ -88,21 +73,7 @@ export const say: Command = {
     }
 
     const message = interaction.options.getString("message", true);
-    const langOption = interaction.options.getString("lang");
-
-    let language: VoiceLanguageCode;
-    if (langOption) {
-      if (!isSupportedLanguage(langOption)) {
-        await interaction.reply({
-          content: t(locale, "commands.say.invalidLanguage"),
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-      language = langOption as VoiceLanguageCode;
-    } else {
-      language = getTTSLanguage(interaction);
-    }
+    const language = getTTSLanguage(interaction);
 
     const validation = validateTTSText(message);
     if (!validation.valid) {
@@ -145,16 +116,5 @@ export const say: Command = {
 
       await interaction.editReply({ embeds: [embed] });
     }
-  },
-
-  async autocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused();
-    const filtered = filterSupportedLanguages(focusedValue);
-    await interaction.respond(
-      filtered.slice(0, 25).map((lang) => ({
-        name: `${lang.name} (${lang.nativeName})`,
-        value: lang.code,
-      })),
-    );
   },
 };

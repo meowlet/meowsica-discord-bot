@@ -103,14 +103,48 @@ export default {
       skipped: "Đã bỏ qua tin nhắn hiện tại.",
     },
     voices: {
-      description: "Danh sách ngôn ngữ TTS có sẵn",
+      description: "Quản lý cài đặt giọng TTS",
       title: "Ngôn ngữ TTS có sẵn",
       subtitle:
-        "Dùng `/say lang:CODE` để đọc bằng ngôn ngữ cụ thể, hoặc đặt mặc định với `/lang speech user`.",
+        "Dùng `/say lang:CODE` để đọc bằng ngôn ngữ cụ thể, hoặc đặt mặc định với `/voices set`.",
       pageInfo: "Trang {current}/{total}",
       totalLanguages: "{count} ngôn ngữ có sẵn",
       usage:
         "**Cách dùng:** `/say message:Xin chào lang:vi` để đọc bằng Tiếng Việt",
+      list: {
+        description: "Danh sách tất cả ngôn ngữ TTS có sẵn",
+        pageOption: "Số trang",
+      },
+      set: {
+        description: "Đặt giọng TTS ưa thích của bạn",
+        languageOption: "Chọn ngôn ngữ",
+        variantOption: "Chọn giọng Wavenet (chỉ Premium)",
+        providerOption: "Chọn Basic (Miễn phí) hoặc Premium (Wavenet)",
+        success: "Đã cập nhật cài đặt giọng",
+        language: "Ngôn ngữ",
+        provider: "Nhà cung cấp",
+        voice: "Model",
+        premiumRestricted: "Yêu cầu Premium",
+        premiumRestrictedDesc:
+          "Chế độ này chỉ dành cho thành viên Encore. Dùng Basic (Google Translate) để truy cập miễn phí.",
+        invalidLanguage: "Mã ngôn ngữ không hợp lệ. Vui lòng chọn từ danh sách tự động.",
+      },
+      info: {
+        description: "Xem cài đặt giọng hiện tại của bạn",
+        title: "Cài đặt giọng của bạn",
+        status: "Trạng thái",
+        premium: "Encore đang hoạt động",
+        standard: "Gói miễn phí",
+        language: "Ngôn ngữ",
+        provider: "Nhà cung cấp",
+        model: "Model",
+        upgradeHint: "Nâng cấp lên Meowsica Encore để có giọng Wavenet cao cấp!",
+      },
+      reset: {
+        description: "Đặt lại cài đặt giọng về mặc định",
+        success: "Đã đặt lại cài đặt giọng",
+        successDesc: "Cài đặt giọng của bạn đã được đặt lại về mặc định (Basic Tiếng Anh).",
+      },
     },
     queue: {
       description: "Xem hàng đợi TTS hiện tại",

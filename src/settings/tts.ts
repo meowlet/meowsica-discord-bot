@@ -2,58 +2,50 @@ import { Database } from "bun:sqlite";
 import type { ChatInputCommandInteraction } from "discord.js";
 import {
   DEFAULT_VOICE_LANGUAGE,
-  isValidVoiceLanguage,
   type VoiceLanguageCode,
 } from "../tts/voices.ts";
+import { isSupportedLanguage } from "../constants/languages.ts";
 
 const db = new Database("settings.db");
 
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN tts_language TEXT`);
-} catch {}
-
-try {
-  db.run(`ALTER TABLE server_settings ADD COLUMN tts_language TEXT`);
-} catch {}
-
-const getUserTTSLanguage = db.prepare<
-  { tts_language: string | null },
+const getUserVoiceLanguage = db.prepare<
+  { voice_language: string | null },
   [string]
->("SELECT tts_language FROM user_settings WHERE user_id = ?");
+>("SELECT voice_language FROM user_settings WHERE user_id = ?");
 
-const getServerTTSLanguage = db.prepare<
-  { tts_language: string | null },
+const getServerVoiceLanguage = db.prepare<
+  { voice_language: string | null },
   [string]
->("SELECT tts_language FROM server_settings WHERE server_id = ?");
+>("SELECT voice_language FROM server_settings WHERE server_id = ?");
 
-const upsertUserTTSLanguage = db.prepare(
-  `INSERT INTO user_settings (user_id, tts_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET tts_language = excluded.tts_language, updated_at = unixepoch()`,
+const upsertUserVoiceLanguage = db.prepare(
+  `INSERT INTO user_settings (user_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
+   ON CONFLICT(user_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
 );
 
-const upsertServerTTSLanguage = db.prepare(
-  `INSERT INTO server_settings (server_id, tts_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(server_id) DO UPDATE SET tts_language = excluded.tts_language, updated_at = unixepoch()`,
+const upsertServerVoiceLanguage = db.prepare(
+  `INSERT INTO server_settings (server_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
+   ON CONFLICT(server_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
 );
 
 export function getUserTTS(userId: string): VoiceLanguageCode | null {
-  const row = getUserTTSLanguage.get(userId);
-  const lang = row?.tts_language;
-  if (lang && isValidVoiceLanguage(lang)) {
-    return lang;
+  const row = getUserVoiceLanguage.get(userId);
+  const lang = row?.voice_language;
+  if (lang && isSupportedLanguage(lang)) {
+    return lang as VoiceLanguageCode;
   }
   return null;
 }
 
 export function setUserTTS(userId: string, language: VoiceLanguageCode): void {
-  upsertUserTTSLanguage.run(userId, language);
+  upsertUserVoiceLanguage.run(userId, language);
 }
 
 export function getServerTTS(serverId: string): VoiceLanguageCode | null {
-  const row = getServerTTSLanguage.get(serverId);
-  const lang = row?.tts_language;
-  if (lang && isValidVoiceLanguage(lang)) {
-    return lang;
+  const row = getServerVoiceLanguage.get(serverId);
+  const lang = row?.voice_language;
+  if (lang && isSupportedLanguage(lang)) {
+    return lang as VoiceLanguageCode;
   }
   return null;
 }
@@ -62,7 +54,7 @@ export function setServerTTS(
   serverId: string,
   language: VoiceLanguageCode,
 ): void {
-  upsertServerTTSLanguage.run(serverId, language);
+  upsertServerVoiceLanguage.run(serverId, language);
 }
 
 export function getTTSLanguage(

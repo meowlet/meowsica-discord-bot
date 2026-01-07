@@ -1,21 +1,20 @@
 import type { BotClient } from "../structs/BotClient.ts";
 import { botLogger } from "../utils/logger.ts";
+import { initializeVoiceCache } from "../services/GoogleTTSService.ts";
 
 export async function handleReady(client: BotClient): Promise<void> {
   if (!client.user) {
     botLogger.error("Client user is null on ready event");
     return;
   }
-
   client.initialized = true;
-
   const shardInfo = client.getShardInfo();
   const guildCount = client.guilds.cache.size;
-
   botLogger.info(`${shardInfo} Ready | ${guildCount} guilds`);
-
+  initializeVoiceCache().catch((error) => {
+    botLogger.warn("Failed to initialize voice cache:", error);
+  });
   updatePresence(client);
-
   setInterval(
     () => {
       updatePresence(client);

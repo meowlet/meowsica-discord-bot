@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import type { ChatInputCommandInteraction } from "discord.js";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/index.ts";
+import type { TTSProviderType, UserVoicePreferences } from "../types/google-tts.ts";
 
 const db = new Database("settings.db");
 
@@ -44,6 +45,16 @@ try {
 try {
   db.run(`ALTER TABLE server_settings ADD COLUMN voice_language TEXT`);
 } catch {}
+try {
+  db.run(`ALTER TABLE user_settings ADD COLUMN tts_provider TEXT DEFAULT 'basic'`);
+} catch {}
+try {
+  db.run(`UPDATE user_settings SET tts_provider = 'basic' WHERE tts_provider = 'standard'`);
+  db.run(`UPDATE user_settings SET tts_provider = 'premium' WHERE tts_provider = 'wavenet'`);
+} catch {}
+try {
+  db.run(`ALTER TABLE user_settings ADD COLUMN voice_name TEXT`);
+} catch {}
 
 try {
   db.run(
@@ -59,6 +70,8 @@ type UserSettingsRow = {
   voice_language: string | null;
   is_premium: number;
   premium_until: number | null;
+  tts_provider: string | null;
+  voice_name: string | null;
 };
 
 type ServerSettingsRow = {
@@ -72,7 +85,7 @@ type PremiumRow = {
 };
 
 const getUserSettings = db.prepare<UserSettingsRow, [string]>(
-  "SELECT locale_language, voice_language, is_premium, premium_until FROM user_settings WHERE user_id = ?",
+  "SELECT locale_language, voice_language, is_premium, premium_until, tts_provider, voice_name FROM user_settings WHERE user_id = ?",
 );
 
 const getServerSettings = db.prepare<ServerSettingsRow, [string]>(
@@ -106,6 +119,11 @@ const upsertServerLocale = db.prepare(
 const upsertServerVoice = db.prepare(
   `INSERT INTO server_settings (server_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
    ON CONFLICT(server_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
+);
+
+const upsertUserVoicePreferences = db.prepare(
+  `INSERT INTO user_settings (user_id, tts_provider, voice_name, voice_language, updated_at) VALUES (?, ?, ?, ?, unixepoch())
+   ON CONFLICT(user_id) DO UPDATE SET tts_provider = excluded.tts_provider, voice_name = excluded.voice_name, voice_language = excluded.voice_language, updated_at = unixepoch()`,
 );
 
 export function getUserLocale(userId: string): Locale | null {
@@ -222,4 +240,40 @@ export function setUserPremium(
  */
 export function removeUserPremium(userId: string): void {
   upsertUserPremium.run(userId, 0, null);
+}
+
+/**
+ * Get user's TTS voice preferences
+ */
+export function getUserVoicePreferences(userId: string): UserVoicePreferences {
+  const row = getUserSettings.get(userId);
+  let provider = (row?.tts_provider as TTSProviderType) || "basic";
+  if (provider === "standard" as unknown) provider = "basic";
+  if (provider === "wavenet" as unknown) provider = "premium";
+  return {
+    provider,
+    voiceName: row?.voice_name || null,
+    languageCode: row?.voice_language || "en",
+  };
+}
+
+/**
+ * Set user's TTS voice preferences
+ */
+export function setUserVoicePreferences(
+  userId: string,
+  preferences: Partial<UserVoicePreferences>,
+): void {
+  const current = getUserVoicePreferences(userId);
+  const provider = preferences.provider ?? current.provider;
+  const voiceName = preferences.voiceName ?? current.voiceName;
+  const languageCode = preferences.languageCode ?? current.languageCode;
+  upsertUserVoicePreferences.run(userId, provider, voiceName, languageCode);
+}
+
+/**
+ * Reset user's voice to basic (free) mode
+ */
+export function resetUserToBasicVoice(userId: string): void {
+  upsertUserVoicePreferences.run(userId, "basic", null, null);
 }

@@ -14,15 +14,15 @@ import {
 } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
 import { queueTTS } from "../../tts/player.ts";
-import {
-  isValidVoiceLanguage,
-  DEFAULT_VOICE_LANGUAGE,
-  VOICE_LANGUAGE_CODES,
-  getVoiceLanguageDisplay,
-  type VoiceLanguageCode,
-} from "../../tts/voices.ts";
+import { type VoiceLanguageCode } from "../../tts/voices.ts";
 import { validateTTSText } from "../../tts/provider.ts";
 import { getTTSLanguage } from "../../settings/tts.ts";
+import {
+  SUPPORTED_LANGUAGES,
+  filterSupportedLanguages,
+  isSupportedLanguage,
+  getSupportedLanguageByCode,
+} from "../../constants/languages.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -85,14 +85,14 @@ export const say: Command = {
 
     let language: VoiceLanguageCode;
     if (langOption) {
-      if (!isValidVoiceLanguage(langOption)) {
+      if (!isSupportedLanguage(langOption)) {
         await interaction.reply({
           content: t(locale, "commands.say.invalidLanguage"),
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
-      language = langOption;
+      language = langOption as VoiceLanguageCode;
     } else {
       language = getTTSLanguage(interaction);
     }
@@ -112,25 +112,21 @@ export const say: Command = {
       if (!isConnected(guildId)) {
         await joinChannel(voiceChannel);
       }
-
-      const { queued, position, isEncoreMode } = queueTTS(
+      const result = queueTTS(
         guildId,
         message,
         language,
         interaction.user.id,
       );
-
+      const { queued, position, isEncoreMode, providerLabel, modelLabel } = result;
       const displayMessage =
         message.length > 100 ? message.slice(0, 100) + "..." : message;
-
       const title = isEncoreMode
         ? `${t(locale, "encore.badge")} - ${t(locale, "commands.say.success")}`
         : t(locale, "commands.say.success");
-
       const embed = new EmbedBuilder()
         .setTitle(title)
         .setColor(isEncoreMode ? 0xffd700 : Colors.Success);
-
       if (queued) {
         embed.setDescription(
           t(locale, "commands.say.queued", { message: displayMessage }),
@@ -145,17 +141,30 @@ export const say: Command = {
           t(locale, "commands.say.speaking", { message: displayMessage }),
         );
       }
-
-      embed.addFields({
-        name: "Language",
-        value: getVoiceLanguageDisplay(language),
-        inline: true,
-      });
-
+      const langInfo = getSupportedLanguageByCode(language);
+      const languageDisplay = langInfo
+        ? `${langInfo.name} (${langInfo.nativeName})`
+        : language;
+      embed.addFields(
+        {
+          name: "Language",
+          value: languageDisplay,
+          inline: true,
+        },
+        {
+          name: "Provider",
+          value: providerLabel,
+          inline: true,
+        },
+        {
+          name: "Model",
+          value: modelLabel,
+          inline: true,
+        },
+      );
       if (isEncoreMode) {
         embed.setFooter({ text: t(locale, "encore.modeActive") });
       }
-
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       const embed = new EmbedBuilder()
@@ -168,28 +177,13 @@ export const say: Command = {
   },
 
   async autocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
-
-    const { VOICE_LANGUAGES } = await import("../../tts/voices.ts");
-
-    const filtered = VOICE_LANGUAGE_CODES.filter((code) => {
-      const lang = VOICE_LANGUAGES[code];
-      if (!lang) return false;
-      return (
-        code.toLowerCase().includes(focusedValue) ||
-        lang.name.toLowerCase().includes(focusedValue) ||
-        (lang.nativeName?.toLowerCase().includes(focusedValue) ?? false)
-      );
-    }).slice(0, 25);
-
+    const focusedValue = interaction.options.getFocused();
+    const filtered = filterSupportedLanguages(focusedValue);
     await interaction.respond(
-      filtered.map((code) => {
-        const lang = VOICE_LANGUAGES[code]!;
-        return {
-          name: `${lang.emoji} ${lang.name} (${code})`,
-          value: code,
-        };
-      }),
+      filtered.slice(0, 25).map((lang) => ({
+        name: `${lang.name} (${lang.nativeName})`,
+        value: lang.code,
+      })),
     );
   },
 };

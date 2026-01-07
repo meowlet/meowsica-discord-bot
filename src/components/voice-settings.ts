@@ -45,38 +45,86 @@ function getUserLocale(userId: string): Locale {
 
 // Language flag emojis
 const LANGUAGE_FLAGS: Record<string, string> = {
+  // Priority languages
   vi: "🇻🇳",
   en: "🇺🇸",
   ja: "🇯🇵",
   ko: "🇰🇷",
-  cmn: "🇨🇳",
-  th: "🇹🇭",
-  id: "🇮🇩",
-  fil: "🇵🇭",
-  es: "🇪🇸",
+  "zh-CN": "🇨🇳",
+  // Alphabetical (A-I)
+  af: "🇿🇦",
+  ar: "🇸🇦",
+  hy: "🇦🇲",
+  bn: "🇧🇩",
+  ca: "🇪🇸",
+  hr: "🇭🇷",
+  cs: "🇨🇿",
+  da: "🇩🇰",
+  nl: "🇳🇱",
+  tl: "🇵🇭",
+  fi: "🇫🇮",
   fr: "🇫🇷",
   de: "🇩🇪",
-  it: "🇮🇹",
-  pt: "🇧🇷",
-  ru: "🇷🇺",
+  el: "🇬🇷",
   hi: "🇮🇳",
-  ar: "🇸🇦",
-  nl: "🇳🇱",
+  hu: "🇭🇺",
+  is: "🇮🇸",
+  id: "🇮🇩",
+  it: "🇮🇹",
+  // Alphabetical (J-Z)
+  jw: "🇮🇩",
+  km: "🇰🇭",
+  lv: "🇱🇻",
+  ml: "🇮🇳",
+  mr: "🇮🇳",
+  ne: "🇳🇵",
+  no: "🇳🇴",
   pl: "🇵🇱",
+  pt: "🇧🇷",
+  ro: "🇷🇴",
+  ru: "🇷🇺",
+  sr: "🇷🇸",
+  si: "🇱🇰",
+  sk: "🇸🇰",
+  es: "🇪🇸",
+  su: "🇮🇩",
+  sw: "🇹🇿",
+  sv: "🇸🇪",
+  ta: "🇮🇳",
+  te: "🇮🇳",
+  th: "🇹🇭",
   tr: "🇹🇷",
   uk: "🇺🇦",
 };
 
+// Navigation values for pagination
+const NAV_NEXT = "NAV_NEXT_PAGE";
+const NAV_PREV = "NAV_PREV_PAGE";
+const LANGUAGES_PER_PAGE = 24; // Leave room for 1 navigation option (Discord max 25)
+
 /**
- * Build language select menu
+ * Build language select menu with pagination support
+ * 
+ * @param currentLanguage - Currently selected language code
+ * @param locale - User's UI locale
+ * @param page - Page number (1 = first page, 2 = second page, etc.)
  */
 function buildLanguageSelect(
   currentLanguage: string | null,
   locale: Locale,
+  page: number = 1,
 ): ActionRowBuilder<StringSelectMenuBuilder> {
   const currentCode = currentLanguage || "vi";
+  const totalLanguages = SUPPORTED_LANGUAGES.length;
+  const totalPages = Math.ceil(totalLanguages / LANGUAGES_PER_PAGE);
 
-  const options = SUPPORTED_LANGUAGES.map((lang) => {
+  // Calculate slice indices
+  const startIndex = (page - 1) * LANGUAGES_PER_PAGE;
+  const endIndex = Math.min(startIndex + LANGUAGES_PER_PAGE, totalLanguages);
+  const pageLanguages = SUPPORTED_LANGUAGES.slice(startIndex, endIndex);
+
+  // Build language options for current page
+  const options = pageLanguages.map((lang) => {
     const flag = LANGUAGE_FLAGS[lang.code] || "🌐";
     return new StringSelectMenuOptionBuilder()
       .setLabel(`${lang.name}`)
@@ -90,10 +138,33 @@ function buildLanguageSelect(
       );
   });
 
+  // Add navigation options if needed
+  if (page < totalPages) {
+    // Not on last page - show "More Languages..." option
+    options.push(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(t(locale, "commands.voice.config.moreLanguages"))
+        .setDescription(t(locale, "commands.voice.config.moreLanguagesDesc"))
+        .setValue(NAV_NEXT)
+        .setEmoji("➡️"),
+    );
+  }
+
+  if (page > 1) {
+    // Not on first page - show "Back to Top" option
+    options.push(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(t(locale, "commands.voice.config.backToTop"))
+        .setDescription(t(locale, "commands.voice.config.backToTopDesc"))
+        .setValue(NAV_PREV)
+        .setEmoji("⬅️"),
+    );
+  }
+
   const select = new StringSelectMenuBuilder()
     .setCustomId("select_voice_language")
     .setPlaceholder(t(locale, "commands.voice.config.languagePlaceholder"))
-    .addOptions(options.slice(0, 25)); // Discord max 25 options
+    .addOptions(options);
 
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 }
@@ -221,15 +292,24 @@ async function buildVariantSelect(
 }
 
 /**
+ * Config interface state for pagination
+ */
+interface ConfigState {
+  languagePage?: number;
+}
+
+/**
  * Build complete config interface
  * 
  * Implements auto-downgrade and strict visibility control:
  * - Auto-downgrades expired premium users to basic
  * - Only shows variant row when user is in Encore mode
+ * - Supports paginated language selection
  */
 async function buildConfigInterface(
   userId: string,
   locale: Locale,
+  state: ConfigState = {},
 ): Promise<{
   embed: EmbedBuilder;
   rows: ActionRowBuilder<StringSelectMenuBuilder>[];
@@ -246,7 +326,9 @@ async function buildConfigInterface(
     .setDescription(t(locale, "commands.voice.config.subtitle"))
     .setColor(Colors.Primary);
 
-  const languageRow = buildLanguageSelect(profile.language, locale);
+  // Use page from state, default to 1
+  const languagePage = state.languagePage ?? 1;
+  const languageRow = buildLanguageSelect(profile.language, locale, languagePage);
   const providerRow = buildProviderSelect(profile.provider, isUserPremium, locale);
 
   // Build rows array - variant row only included when in Encore mode
@@ -327,6 +409,7 @@ export async function handleResetButton(
 /**
  * Handle Language select menu
  * 
+ * Supports in-place pagination with NAV_NEXT and NAV_PREV options.
  * AUTO-SELECT LOGIC: When a Premium user changes language,
  * automatically select the first available Wavenet voice for that language
  * to prevent stale/invalid voice_name values.
@@ -336,15 +419,42 @@ export async function handleLanguageSelect(
 ): Promise<void> {
   const userId = interaction.user.id;
   const locale = getUserLocale(userId);
-  const selectedLanguage = interaction.values[0];
+  const selectedValue = interaction.values[0];
 
-  if (!selectedLanguage) {
+  if (!selectedValue) {
     await interaction.reply({
       content: t(locale, "common.error"),
       flags: MessageFlags.Ephemeral,
     });
     return;
   }
+
+  // --- NAVIGATION LOGIC ---
+  if (selectedValue === NAV_NEXT) {
+    // User clicked "More Languages...", re-render UI showing Page 2
+    // Do NOT update database
+    const { embed, rows } = await buildConfigInterface(userId, locale, { languagePage: 2 });
+    await interaction.update({
+      embeds: [embed],
+      components: rows,
+    });
+    return;
+  }
+
+  if (selectedValue === NAV_PREV) {
+    // User clicked "Back to Top", re-render UI showing Page 1
+    // Do NOT update database
+    const { embed, rows } = await buildConfigInterface(userId, locale, { languagePage: 1 });
+    await interaction.update({
+      embeds: [embed],
+      components: rows,
+    });
+    return;
+  }
+
+  // --- NORMAL SELECTION LOGIC ---
+  // User picked a real language (e.g., 'vi-VN')
+  const selectedLanguage = selectedValue;
 
   // Get current profile to check provider
   const currentProfile = getUserTTSProfile(userId);
@@ -378,8 +488,8 @@ export async function handleLanguageSelect(
   // Update database
   setUserTTSProfile(userId, updates);
 
-  // Rebuild the config interface with updated settings
-  const { embed, rows } = await buildConfigInterface(userId, locale);
+  // Rebuild the config interface with updated settings (reset to page 1)
+  const { embed, rows } = await buildConfigInterface(userId, locale, { languagePage: 1 });
 
   const langInfo = getSupportedLanguageByCode(selectedLanguage);
   const langFlag = getLanguageFlag(selectedLanguage);

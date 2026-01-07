@@ -1,167 +1,385 @@
+/**
+ * Database Repository - Refactored
+ *
+ * Clean separation of concerns:
+ * - Subscription functions query only `subscriptions` table
+ * - Preferences functions query only `user_preferences` table
+ * - Server functions query only `server_settings` table
+ */
+
 import { Database } from "bun:sqlite";
 import type { ChatInputCommandInteraction } from "discord.js";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/index.ts";
-import type { TTSProviderType, UserVoicePreferences } from "../types/google-tts.ts";
+import { initializeSchema } from "./migration.ts";
+import {
+  type SubscriptionTier,
+  type TTSProvider,
+  type SubscriptionRow,
+  type UserPreferencesRow,
+  type ServerSettingsRow,
+} from "./schema.ts";
+
+// ============================================================================
+// Database Initialization
+// ============================================================================
 
 const db = new Database("settings.db");
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS user_settings (
-    user_id TEXT PRIMARY KEY,
-    locale_language TEXT,
-    voice_language TEXT,
-    is_premium INTEGER DEFAULT 0,
-    premium_until INTEGER,
-    created_at INTEGER DEFAULT (unixepoch()),
-    updated_at INTEGER DEFAULT (unixepoch())
-  )
-`);
+// Run migration/initialization
+initializeSchema(db);
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS server_settings (
-    server_id TEXT PRIMARY KEY,
-    locale_language TEXT,
-    voice_language TEXT,
-    created_at INTEGER DEFAULT (unixepoch()),
-    updated_at INTEGER DEFAULT (unixepoch())
-  )
-`);
+// ============================================================================
+// Type Definitions
+// ============================================================================
 
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN locale_language TEXT`);
-} catch {}
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN voice_language TEXT`);
-} catch {}
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN is_premium INTEGER DEFAULT 0`);
-} catch {}
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN premium_until INTEGER`);
-} catch {}
-try {
-  db.run(`ALTER TABLE server_settings ADD COLUMN locale_language TEXT`);
-} catch {}
-try {
-  db.run(`ALTER TABLE server_settings ADD COLUMN voice_language TEXT`);
-} catch {}
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN tts_provider TEXT DEFAULT 'basic'`);
-} catch {}
-try {
-  db.run(`UPDATE user_settings SET tts_provider = 'basic' WHERE tts_provider = 'standard'`);
-  db.run(`UPDATE user_settings SET tts_provider = 'premium' WHERE tts_provider = 'wavenet'`);
-} catch {}
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN voice_name TEXT`);
-} catch {}
-
-try {
-  db.run(
-    `UPDATE user_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`,
-  );
-  db.run(
-    `UPDATE server_settings SET locale_language = language WHERE locale_language IS NULL AND language IS NOT NULL`,
-  );
-} catch {}
-
-type UserSettingsRow = {
-  locale_language: string | null;
-  voice_language: string | null;
-  is_premium: number;
-  premium_until: number | null;
-  tts_provider: string | null;
-  voice_name: string | null;
-};
-
-type ServerSettingsRow = {
-  locale_language: string | null;
-  voice_language: string | null;
-};
-
-type PremiumRow = {
-  is_premium: number;
-  premium_until: number | null;
-};
-
-const getUserSettings = db.prepare<UserSettingsRow, [string]>(
-  "SELECT locale_language, voice_language, is_premium, premium_until, tts_provider, voice_name FROM user_settings WHERE user_id = ?",
-);
-
-const getServerSettings = db.prepare<ServerSettingsRow, [string]>(
-  "SELECT locale_language, voice_language FROM server_settings WHERE server_id = ?",
-);
-
-const getUserPremium = db.prepare<PremiumRow, [string]>(
-  "SELECT is_premium, premium_until FROM user_settings WHERE user_id = ?",
-);
-
-const upsertUserPremium = db.prepare(
-  `INSERT INTO user_settings (user_id, is_premium, premium_until, updated_at) VALUES (?, ?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET is_premium = excluded.is_premium, premium_until = excluded.premium_until, updated_at = unixepoch()`,
-);
-
-const upsertUserLocale = db.prepare(
-  `INSERT INTO user_settings (user_id, locale_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET locale_language = excluded.locale_language, updated_at = unixepoch()`,
-);
-
-const upsertUserVoice = db.prepare(
-  `INSERT INTO user_settings (user_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
-);
-
-const upsertServerLocale = db.prepare(
-  `INSERT INTO server_settings (server_id, locale_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(server_id) DO UPDATE SET locale_language = excluded.locale_language, updated_at = unixepoch()`,
-);
-
-const upsertServerVoice = db.prepare(
-  `INSERT INTO server_settings (server_id, voice_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(server_id) DO UPDATE SET voice_language = excluded.voice_language, updated_at = unixepoch()`,
-);
-
-const upsertUserVoicePreferences = db.prepare(
-  `INSERT INTO user_settings (user_id, tts_provider, voice_name, voice_language, updated_at) VALUES (?, ?, ?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET tts_provider = excluded.tts_provider, voice_name = excluded.voice_name, voice_language = excluded.voice_language, updated_at = unixepoch()`,
-);
-
-export function getUserLocale(userId: string): Locale | null {
-  const row = getUserSettings.get(userId);
-  return (row?.locale_language as Locale) ?? null;
+export interface PremiumStatus {
+  isPremium: boolean;
+  tier: SubscriptionTier;
+  expiresAt: Date | null;
+  isExpired: boolean;
+  isLifetime: boolean;
 }
 
+export interface UserTTSProfile {
+  provider: TTSProvider;
+  language: string | null;
+  voiceId: string | null;
+  speed: number;
+  pitch: number;
+}
+
+export interface UserVoicePreferences {
+  provider: TTSProvider;
+  voiceName: string | null;
+  languageCode: string;
+}
+
+// ============================================================================
+// Prepared Statements - Subscriptions
+// ============================================================================
+
+const getSubscription = db.prepare<
+  Pick<SubscriptionRow, "tier" | "expires_at">,
+  [string]
+>(`SELECT tier, expires_at FROM subscriptions WHERE user_id = ?`);
+
+const upsertSubscription = db.prepare(`
+  INSERT INTO subscriptions (user_id, tier, expires_at, updated_at)
+  VALUES (?, ?, ?, unixepoch())
+  ON CONFLICT(user_id) DO UPDATE SET 
+    tier = excluded.tier, 
+    expires_at = excluded.expires_at, 
+    updated_at = unixepoch()
+`);
+
+// ============================================================================
+// Prepared Statements - User Preferences
+// ============================================================================
+
+const getUserPrefs = db.prepare<
+  Pick<
+    UserPreferencesRow,
+    | "ui_locale"
+    | "tts_provider"
+    | "tts_language"
+    | "tts_voice_id"
+    | "tts_speed"
+    | "tts_pitch"
+  >,
+  [string]
+>(`
+  SELECT ui_locale, tts_provider, tts_language, tts_voice_id, tts_speed, tts_pitch 
+  FROM user_preferences 
+  WHERE user_id = ?
+`);
+
+const getUserLocaleStmt = db.prepare<Pick<UserPreferencesRow, "ui_locale">, [string]>(
+  `SELECT ui_locale FROM user_preferences WHERE user_id = ?`
+);
+
+const getUserTTSStmt = db.prepare<
+  Pick<UserPreferencesRow, "tts_provider" | "tts_language" | "tts_voice_id" | "tts_speed" | "tts_pitch">,
+  [string]
+>(`
+  SELECT tts_provider, tts_language, tts_voice_id, tts_speed, tts_pitch 
+  FROM user_preferences 
+  WHERE user_id = ?
+`);
+
+const upsertUserLocale = db.prepare(`
+  INSERT INTO user_preferences (user_id, ui_locale, updated_at)
+  VALUES (?, ?, unixepoch())
+  ON CONFLICT(user_id) DO UPDATE SET 
+    ui_locale = excluded.ui_locale, 
+    updated_at = unixepoch()
+`);
+
+const upsertUserTTS = db.prepare(`
+  INSERT INTO user_preferences (user_id, tts_provider, tts_language, tts_voice_id, tts_speed, tts_pitch, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, unixepoch())
+  ON CONFLICT(user_id) DO UPDATE SET 
+    tts_provider = excluded.tts_provider,
+    tts_language = excluded.tts_language,
+    tts_voice_id = excluded.tts_voice_id,
+    tts_speed = excluded.tts_speed,
+    tts_pitch = excluded.tts_pitch,
+    updated_at = unixepoch()
+`);
+
+const upsertUserTTSLanguage = db.prepare(`
+  INSERT INTO user_preferences (user_id, tts_language, updated_at)
+  VALUES (?, ?, unixepoch())
+  ON CONFLICT(user_id) DO UPDATE SET 
+    tts_language = excluded.tts_language, 
+    updated_at = unixepoch()
+`);
+
+// ============================================================================
+// Prepared Statements - Server Settings
+// ============================================================================
+
+const getServerSettingsStmt = db.prepare<
+  Pick<ServerSettingsRow, "locale_language" | "voice_language">,
+  [string]
+>(`SELECT locale_language, voice_language FROM server_settings WHERE server_id = ?`);
+
+const upsertServerLocale = db.prepare(`
+  INSERT INTO server_settings (server_id, locale_language, updated_at)
+  VALUES (?, ?, unixepoch())
+  ON CONFLICT(server_id) DO UPDATE SET 
+    locale_language = excluded.locale_language, 
+    updated_at = unixepoch()
+`);
+
+const upsertServerVoice = db.prepare(`
+  INSERT INTO server_settings (server_id, voice_language, updated_at)
+  VALUES (?, ?, unixepoch())
+  ON CONFLICT(server_id) DO UPDATE SET 
+    voice_language = excluded.voice_language, 
+    updated_at = unixepoch()
+`);
+
+// ============================================================================
+// Subscription Functions
+// ============================================================================
+
+/**
+ * Check if a user has active premium status
+ */
+export function isPremiumUser(userId: string): boolean {
+  const row = getSubscription.get(userId);
+  if (!row || row.tier === "free") return false;
+  if (row.expires_at === null) return true; // Lifetime
+  return row.expires_at * 1000 > Date.now();
+}
+
+/**
+ * Get detailed premium status for a user
+ */
+export function getPremiumStatus(userId: string): PremiumStatus {
+  const row = getSubscription.get(userId);
+
+  if (!row || row.tier === "free") {
+    return {
+      isPremium: false,
+      tier: "free",
+      expiresAt: null,
+      isExpired: false,
+      isLifetime: false,
+    };
+  }
+
+  const expiresAt = row.expires_at ? new Date(row.expires_at * 1000) : null;
+  const isLifetime = row.expires_at === null;
+  const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
+  const isPremium = !isExpired;
+
+  return {
+    isPremium,
+    tier: row.tier as SubscriptionTier,
+    expiresAt,
+    isExpired,
+    isLifetime,
+  };
+}
+
+/**
+ * Set premium status for a user
+ * @param userId Discord user ID
+ * @param durationDays Number of days of premium, or null for lifetime
+ * @param tier Subscription tier (default: 'encore')
+ */
+export function setUserPremium(
+  userId: string,
+  durationDays: number | null,
+  tier: SubscriptionTier = "encore"
+): void {
+  const expiresAt = durationDays
+    ? Math.floor((Date.now() + durationDays * 24 * 60 * 60 * 1000) / 1000)
+    : null;
+  upsertSubscription.run(userId, tier, expiresAt);
+}
+
+/**
+ * Remove premium status from a user
+ */
+export function removeUserPremium(userId: string): void {
+  upsertSubscription.run(userId, "free", null);
+}
+
+/**
+ * Get subscription tier for a user
+ */
+export function getUserTier(userId: string): SubscriptionTier {
+  const row = getSubscription.get(userId);
+  return (row?.tier as SubscriptionTier) ?? "free";
+}
+
+// ============================================================================
+// User Preferences - UI Locale
+// ============================================================================
+
+/**
+ * Get user's UI locale preference
+ */
+export function getUserLocale(userId: string): Locale | null {
+  const row = getUserLocaleStmt.get(userId);
+  return (row?.ui_locale as Locale) ?? null;
+}
+
+/**
+ * Set user's UI locale preference
+ */
 export function setUserLocale(userId: string, locale: Locale): void {
   upsertUserLocale.run(userId, locale);
 }
 
+// ============================================================================
+// User Preferences - TTS Settings
+// ============================================================================
+
+/**
+ * Get user's complete TTS profile
+ */
+export function getUserTTSProfile(userId: string): UserTTSProfile {
+  const row = getUserTTSStmt.get(userId);
+
+  return {
+    provider: (row?.tts_provider as TTSProvider) ?? "basic",
+    language: row?.tts_language ?? null,
+    voiceId: row?.tts_voice_id ?? null,
+    speed: row?.tts_speed ?? 1.0,
+    pitch: row?.tts_pitch ?? 0.0,
+  };
+}
+
+/**
+ * Get user's TTS voice preferences (legacy compatibility)
+ */
+export function getUserVoicePreferences(userId: string): UserVoicePreferences {
+  const profile = getUserTTSProfile(userId);
+  return {
+    provider: profile.provider,
+    voiceName: profile.voiceId,
+    languageCode: profile.language ?? "en",
+  };
+}
+
+/**
+ * Set user's complete TTS profile
+ */
+export function setUserTTSProfile(
+  userId: string,
+  profile: Partial<UserTTSProfile>
+): void {
+  const current = getUserTTSProfile(userId);
+
+  const provider = profile.provider ?? current.provider;
+  const language = profile.language ?? current.language;
+  const voiceId = profile.voiceId ?? current.voiceId;
+  const speed = profile.speed ?? current.speed;
+  const pitch = profile.pitch ?? current.pitch;
+
+  upsertUserTTS.run(userId, provider, language, voiceId, speed, pitch);
+}
+
+/**
+ * Set user's TTS voice preferences (legacy compatibility)
+ */
+export function setUserVoicePreferences(
+  userId: string,
+  preferences: Partial<UserVoicePreferences>
+): void {
+  setUserTTSProfile(userId, {
+    provider: preferences.provider,
+    language: preferences.languageCode,
+    voiceId: preferences.voiceName,
+  });
+}
+
+/**
+ * Get user's TTS language only
+ */
 export function getUserVoice(userId: string): Locale | null {
-  const row = getUserSettings.get(userId);
-  return (row?.voice_language as Locale) ?? null;
+  const row = getUserTTSStmt.get(userId);
+  return (row?.tts_language as Locale) ?? null;
 }
 
-export function setUserVoice(userId: string, voice: Locale): void {
-  upsertUserVoice.run(userId, voice);
+/**
+ * Set user's TTS language only
+ */
+export function setUserVoice(userId: string, language: string): void {
+  upsertUserTTSLanguage.run(userId, language);
 }
 
+/**
+ * Reset user's voice to basic (free) mode
+ */
+export function resetUserToBasicVoice(userId: string): void {
+  upsertUserTTS.run(userId, "basic", null, null, 1.0, 0.0);
+}
+
+// ============================================================================
+// Server Settings
+// ============================================================================
+
+/**
+ * Get server's locale preference
+ */
 export function getServerLocale(serverId: string): Locale | null {
-  const row = getServerSettings.get(serverId);
+  const row = getServerSettingsStmt.get(serverId);
   return (row?.locale_language as Locale) ?? null;
 }
 
+/**
+ * Set server's locale preference
+ */
 export function setServerLocale(serverId: string, locale: Locale): void {
   upsertServerLocale.run(serverId, locale);
 }
 
+/**
+ * Get server's TTS voice language
+ */
 export function getServerVoice(serverId: string): Locale | null {
-  const row = getServerSettings.get(serverId);
+  const row = getServerSettingsStmt.get(serverId);
   return (row?.voice_language as Locale) ?? null;
 }
 
-export function setServerVoice(serverId: string, voice: Locale): void {
+/**
+ * Set server's TTS voice language
+ */
+export function setServerVoice(serverId: string, voice: string): void {
   upsertServerVoice.run(serverId, voice);
 }
 
+// ============================================================================
+// Combined Helpers (for commands)
+// ============================================================================
+
+/**
+ * Get effective locale for an interaction (user > server > default)
+ */
 export function getLocale(interaction: ChatInputCommandInteraction): Locale {
   const userLocale = getUserLocale(interaction.user.id);
   if (userLocale) return userLocale;
@@ -174,8 +392,11 @@ export function getLocale(interaction: ChatInputCommandInteraction): Locale {
   return DEFAULT_LOCALE;
 }
 
+/**
+ * Get effective voice language for an interaction (user > server > default)
+ */
 export function getVoiceLanguage(
-  interaction: ChatInputCommandInteraction,
+  interaction: ChatInputCommandInteraction
 ): Locale {
   const userVoice = getUserVoice(interaction.user.id);
   if (userVoice) return userVoice;
@@ -188,92 +409,8 @@ export function getVoiceLanguage(
   return DEFAULT_LOCALE;
 }
 
-export interface PremiumStatus {
-  isPremium: boolean;
-  premiumUntil: Date | null;
-  isExpired: boolean;
-}
+// ============================================================================
+// Database Export (for advanced use)
+// ============================================================================
 
-/**
- * Check if a user has active premium status
- */
-export function isPremiumUser(userId: string): boolean {
-  const row = getUserPremium.get(userId);
-  if (!row || !row.is_premium) return false;
-  if (row.premium_until === null) return true;
-  return row.premium_until * 1000 > Date.now();
-}
-
-/**
- * Get detailed premium status for a user
- */
-export function getPremiumStatus(userId: string): PremiumStatus {
-  const row = getUserPremium.get(userId);
-  if (!row) {
-    return { isPremium: false, premiumUntil: null, isExpired: false };
-  }
-  const premiumUntil = row.premium_until
-    ? new Date(row.premium_until * 1000)
-    : null;
-  const isExpired = premiumUntil ? premiumUntil.getTime() < Date.now() : false;
-  const isPremium = row.is_premium === 1 && !isExpired;
-  return { isPremium, premiumUntil, isExpired };
-}
-
-/**
- * Set premium status for a user
- * @param userId Discord user ID
- * @param durationDays Number of days of premium, or null for lifetime
- */
-export function setUserPremium(
-  userId: string,
-  durationDays: number | null,
-): void {
-  const premiumUntil = durationDays
-    ? Math.floor((Date.now() + durationDays * 24 * 60 * 60 * 1000) / 1000)
-    : null;
-  upsertUserPremium.run(userId, 1, premiumUntil);
-}
-
-/**
- * Remove premium status from a user
- */
-export function removeUserPremium(userId: string): void {
-  upsertUserPremium.run(userId, 0, null);
-}
-
-/**
- * Get user's TTS voice preferences
- */
-export function getUserVoicePreferences(userId: string): UserVoicePreferences {
-  const row = getUserSettings.get(userId);
-  let provider = (row?.tts_provider as TTSProviderType) || "basic";
-  if (provider === "standard" as unknown) provider = "basic";
-  if (provider === "wavenet" as unknown) provider = "premium";
-  return {
-    provider,
-    voiceName: row?.voice_name || null,
-    languageCode: row?.voice_language || "en",
-  };
-}
-
-/**
- * Set user's TTS voice preferences
- */
-export function setUserVoicePreferences(
-  userId: string,
-  preferences: Partial<UserVoicePreferences>,
-): void {
-  const current = getUserVoicePreferences(userId);
-  const provider = preferences.provider ?? current.provider;
-  const voiceName = preferences.voiceName ?? current.voiceName;
-  const languageCode = preferences.languageCode ?? current.languageCode;
-  upsertUserVoicePreferences.run(userId, provider, voiceName, languageCode);
-}
-
-/**
- * Reset user's voice to basic (free) mode
- */
-export function resetUserToBasicVoice(userId: string): void {
-  upsertUserVoicePreferences.run(userId, "basic", null, null);
-}
+export { db };

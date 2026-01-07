@@ -2,11 +2,17 @@ import {
   type Interaction,
   type ChatInputCommandInteraction,
   type AutocompleteInteraction,
+  type ButtonInteraction,
+  type StringSelectMenuInteraction,
   MessageFlags,
 } from "discord.js";
 import type { BotClient } from "../structs/BotClient.ts";
 import { commands } from "../commands.ts";
 import { commandLogger } from "../utils/logger.ts";
+import {
+  isVoiceComponent,
+  handleVoiceComponent,
+} from "../components/voice-settings.ts";
 
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
@@ -18,6 +24,8 @@ export async function handleInteraction(
     await handleCommand(client, interaction);
   } else if (interaction.isAutocomplete()) {
     await handleAutocomplete(interaction);
+  } else if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    await handleComponent(interaction);
   }
 }
 
@@ -74,5 +82,34 @@ async function handleAutocomplete(
       `Error in autocomplete for /${interaction.commandName}:`,
       error,
     );
+  }
+}
+
+/**
+ * Handle button and select menu component interactions
+ */
+async function handleComponent(
+  interaction: ButtonInteraction | StringSelectMenuInteraction,
+): Promise<void> {
+  const customId = interaction.customId;
+
+  try {
+    // Route voice settings components
+    if (isVoiceComponent(customId)) {
+      await handleVoiceComponent(interaction);
+      return;
+    }
+
+    // Unknown component - log and ignore
+    commandLogger.warn(`Unknown component interaction: ${customId}`);
+  } catch (error) {
+    commandLogger.error(`Error handling component ${customId}:`, error);
+
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: "An error occurred processing this interaction.",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
   }
 }

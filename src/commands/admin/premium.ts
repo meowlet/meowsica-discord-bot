@@ -128,10 +128,10 @@ export const encoreAdmin: Command = {
           },
         );
 
-      if (status.premiumUntil) {
+      if (status.expiresAt) {
         embed.addFields({
           name: t(locale, "commands.encoreAdmin.check.expiresAt"),
-          value: `<t:${Math.floor(status.premiumUntil.getTime() / 1000)}:F>`,
+          value: `<t:${Math.floor(status.expiresAt.getTime() / 1000)}:F>`,
           inline: true,
         });
       } else if (status.isPremium) {

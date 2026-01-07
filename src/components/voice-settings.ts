@@ -1,0 +1,558 @@
+/**
+ * Voice Settings Component Handler
+ *
+ * Handles button and select menu interactions for the voice dashboard.
+ * Implements strict role-based access for premium features.
+ */
+
+import {
+  type ButtonInteraction,
+  type StringSelectMenuInteraction,
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  MessageFlags,
+  ComponentType,
+} from "discord.js";
+import { t, type Locale, DEFAULT_LOCALE } from "../i18n/index.ts";
+import {
+  isPremiumUser,
+  getUserTTSProfile,
+  setUserTTSProfile,
+  resetUserToBasicVoice,
+  getUserLocale as getDbUserLocale,
+} from "../settings/db.ts";
+import { Colors } from "../constants/index.ts";
+import {
+  SUPPORTED_LANGUAGES,
+  getSupportedLanguageByCode,
+} from "../constants/languages.ts";
+import { getWavenetVoicesByLanguage } from "../services/GoogleTTSService.ts";
+import {
+  buildVoiceDashboardEmbed,
+  buildDashboardButtons,
+  getLanguageFlag,
+  reconcilePremiumSettings,
+} from "../commands/misc/voice.ts";
+
+/**
+ * Get user's locale preference
+ */
+function getUserLocale(userId: string): Locale {
+  return getDbUserLocale(userId) || DEFAULT_LOCALE;
+}
+
+// Language flag emojis
+const LANGUAGE_FLAGS: Record<string, string> = {
+  vi: "🇻🇳",
+  en: "🇺🇸",
+  ja: "🇯🇵",
+  ko: "🇰🇷",
+  cmn: "🇨🇳",
+  th: "🇹🇭",
+  id: "🇮🇩",
+  fil: "🇵🇭",
+  es: "🇪🇸",
+  fr: "🇫🇷",
+  de: "🇩🇪",
+  it: "🇮🇹",
+  pt: "🇧🇷",
+  ru: "🇷🇺",
+  hi: "🇮🇳",
+  ar: "🇸🇦",
+  nl: "🇳🇱",
+  pl: "🇵🇱",
+  tr: "🇹🇷",
+  uk: "🇺🇦",
+};
+
+/**
+ * Build language select menu
+ */
+function buildLanguageSelect(
+  currentLanguage: string | null,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const currentCode = currentLanguage || "vi";
+
+  const options = SUPPORTED_LANGUAGES.map((lang) => {
+    const flag = LANGUAGE_FLAGS[lang.code] || "🌐";
+    return new StringSelectMenuOptionBuilder()
+      .setLabel(`${lang.name}`)
+      .setDescription(lang.nativeName)
+      .setValue(lang.cloudCode)
+      .setEmoji(flag)
+      .setDefault(
+        lang.code === currentCode ||
+          lang.cloudCode === currentCode ||
+          currentCode.startsWith(lang.code),
+      );
+  });
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId("select_voice_language")
+    .setPlaceholder(t(locale, "commands.voice.config.languagePlaceholder"))
+    .addOptions(options.slice(0, 25)); // Discord max 25 options
+
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+/**
+ * Build provider select menu
+ * 
+ * Strict Visibility Control:
+ * - Free Users: Only see "Basic" option
+ * - Premium Users: See both "Basic" and "Encore" options
+ */
+function buildProviderSelect(
+  currentProvider: string,
+  isUserPremium: boolean,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  // Base option available to all users
+  const options: StringSelectMenuOptionBuilder[] = [
+    new StringSelectMenuOptionBuilder()
+      .setLabel(t(locale, "commands.voice.config.providerBasicLabel"))
+      .setDescription(t(locale, "commands.voice.config.providerBasicDesc"))
+      .setValue("basic")
+      .setEmoji("🔊")
+      .setDefault(currentProvider === "basic"),
+  ];
+
+  // Premium option only visible to Encore subscribers
+  if (isUserPremium) {
+    options.push(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(t(locale, "commands.voice.config.providerPremiumLabel"))
+        .setDescription(t(locale, "commands.voice.config.providerPremiumDesc"))
+        .setValue("premium")
+        .setEmoji("✨")
+        .setDefault(currentProvider === "premium"),
+    );
+  }
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId("select_voice_provider")
+    .setPlaceholder(
+      isUserPremium
+        ? t(locale, "commands.voice.config.providerPlaceholder")
+        : t(locale, "commands.voice.config.providerBasicOnly"),
+    )
+    .addOptions(options);
+  // Menu stays enabled even for free users (per requirement)
+
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+/**
+ * Build variant/model select menu
+ * 
+ * CRITICAL: This menu is ONLY enabled when:
+ * 1. User has Premium (Encore) subscription AND
+ * 2. User has selected 'premium' provider
+ */
+async function buildVariantSelect(
+  currentProvider: string,
+  currentLanguage: string | null,
+  currentVoiceId: string | null,
+  isUserPremium: boolean,
+  locale: Locale,
+): Promise<ActionRowBuilder<StringSelectMenuBuilder>> {
+  // The model selector is enabled ONLY if user is Premium AND provider is 'premium'
+  const isEncoreMode = isUserPremium && currentProvider === "premium";
+  const langCode = currentLanguage || "vi-VN";
+
+  let options: StringSelectMenuOptionBuilder[] = [];
+
+  if (isEncoreMode) {
+    try {
+      const voices = await getWavenetVoicesByLanguage(langCode);
+      if (voices.length > 0) {
+        options = voices.slice(0, 25).map((voice) => {
+          const variant = voice.value.split("-").pop() || "";
+          const genderEmoji =
+            voice.gender === "FEMALE" ? "♀️" : voice.gender === "MALE" ? "♂️" : "⚪";
+          return new StringSelectMenuOptionBuilder()
+            .setLabel(`Wavenet ${variant}`)
+            .setDescription(`${voice.gender === "FEMALE" ? "Female" : voice.gender === "MALE" ? "Male" : "Neutral"} voice`)
+            .setValue(voice.value)
+            .setEmoji(genderEmoji)
+            .setDefault(voice.value === currentVoiceId);
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch Wavenet voices:", error);
+    }
+  }
+
+  // If no options available (disabled state), add a placeholder option
+  if (options.length === 0) {
+    // Determine the reason for being disabled
+    let description: string;
+    if (!isUserPremium) {
+      description = t(locale, "commands.voice.config.variantRequiresPremium");
+    } else if (currentProvider !== "premium") {
+      description = t(locale, "commands.voice.config.variantBasicMode");
+    } else {
+      description = t(locale, "commands.voice.config.variantNoVoices");
+    }
+
+    options.push(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(t(locale, "commands.voice.config.variantNotAvailable"))
+        .setDescription(description)
+        .setValue("none")
+        .setEmoji("🔒"),
+    );
+  }
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId("select_voice_variant")
+    .setPlaceholder(
+      isEncoreMode
+        ? t(locale, "commands.voice.config.variantPlaceholder")
+        : t(locale, "commands.voice.config.variantLockedPlaceholder"),
+    )
+    .addOptions(options)
+    .setDisabled(!isEncoreMode); // CRITICAL: Only enabled in Encore mode
+
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+/**
+ * Build complete config interface
+ * 
+ * Implements auto-downgrade and strict visibility control:
+ * - Auto-downgrades expired premium users to basic
+ * - Only shows variant row when user is in Encore mode
+ */
+async function buildConfigInterface(
+  userId: string,
+  locale: Locale,
+): Promise<{
+  embed: EmbedBuilder;
+  rows: ActionRowBuilder<StringSelectMenuBuilder>[];
+}> {
+  // Auto-downgrade check before rendering config
+  reconcilePremiumSettings(userId);
+
+  // Fetch corrected profile after reconciliation
+  const profile = getUserTTSProfile(userId);
+  const isUserPremium = isPremiumUser(userId);
+
+  const embed = new EmbedBuilder()
+    .setTitle(t(locale, "commands.voice.config.title"))
+    .setDescription(t(locale, "commands.voice.config.subtitle"))
+    .setColor(Colors.Primary);
+
+  const languageRow = buildLanguageSelect(profile.language, locale);
+  const providerRow = buildProviderSelect(profile.provider, isUserPremium, locale);
+
+  // Build rows array - variant row only included when in Encore mode
+  const rows: ActionRowBuilder<StringSelectMenuBuilder>[] = [languageRow, providerRow];
+
+  // STRICT CONDITION: Only add variant row if user is Premium AND provider is 'premium'
+  const isEncoreMode = isUserPremium && profile.provider === "premium";
+  if (isEncoreMode) {
+    const variantRow = await buildVariantSelect(
+      profile.provider,
+      profile.language,
+      profile.voiceId,
+      isUserPremium,
+      locale,
+    );
+    rows.push(variantRow);
+  }
+
+  return { embed, rows };
+}
+
+/**
+ * Handle Config button click
+ */
+export async function handleConfigButton(
+  interaction: ButtonInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+
+  const { embed, rows } = await buildConfigInterface(userId, locale);
+
+  await interaction.reply({
+    embeds: [embed],
+    components: rows,
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+/**
+ * Handle Reset button click
+ */
+export async function handleResetButton(
+  interaction: ButtonInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+
+  // Reset to defaults
+  resetUserToBasicVoice(userId);
+
+  // Update the dashboard embed
+  const embed = buildVoiceDashboardEmbed(userId, locale);
+  const buttons = buildDashboardButtons(locale);
+
+  const successEmbed = new EmbedBuilder()
+    .setTitle(t(locale, "commands.voice.reset.success"))
+    .setDescription(t(locale, "commands.voice.reset.successDesc"))
+    .setColor(Colors.Success);
+
+  // Reply with success message
+  await interaction.reply({
+    embeds: [successEmbed],
+    flags: MessageFlags.Ephemeral,
+  });
+
+  // Update the original dashboard message
+  try {
+    await interaction.message.edit({
+      embeds: [embed],
+      components: [buttons],
+    });
+  } catch (error) {
+    console.error("Failed to update dashboard after reset:", error);
+  }
+}
+
+/**
+ * Handle Language select menu
+ * 
+ * AUTO-SELECT LOGIC: When a Premium user changes language,
+ * automatically select the first available Wavenet voice for that language
+ * to prevent stale/invalid voice_name values.
+ */
+export async function handleLanguageSelect(
+  interaction: StringSelectMenuInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+  const selectedLanguage = interaction.values[0];
+
+  if (!selectedLanguage) {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Get current profile to check provider
+  const currentProfile = getUserTTSProfile(userId);
+  const isUserPremium = isPremiumUser(userId);
+
+  // Build the update object
+  const updates: { language: string; voiceId?: string | null } = {
+    language: selectedLanguage,
+  };
+
+  // AUTO-SELECT LOGIC: If user is in Premium/Encore mode, auto-select first voice
+  if (isUserPremium && currentProfile.provider === "premium") {
+    try {
+      // Fetch Wavenet voices for the NEW language
+      const validVoices = await getWavenetVoicesByLanguage(selectedLanguage);
+
+      if (validVoices.length > 0) {
+        // Pick the first voice as safe default
+        updates.voiceId = validVoices[0]?.value || null;
+      } else {
+        // Edge case: No voices found for this language, clear the voice
+        updates.voiceId = null;
+      }
+    } catch (error) {
+      console.error("Failed to fetch voices for auto-select:", error);
+      // On error, clear the voice to prevent stale value
+      updates.voiceId = null;
+    }
+  }
+
+  // Update database
+  setUserTTSProfile(userId, updates);
+
+  // Rebuild the config interface with updated settings
+  const { embed, rows } = await buildConfigInterface(userId, locale);
+
+  const langInfo = getSupportedLanguageByCode(selectedLanguage);
+  const langFlag = getLanguageFlag(selectedLanguage);
+  const langName = langInfo ? langInfo.name : selectedLanguage;
+
+  // Update the message
+  await interaction.update({
+    embeds: [
+      embed.setFooter({
+        text: t(locale, "commands.voice.config.languageUpdated", {
+          language: `${langFlag} ${langName}`,
+        }),
+      }),
+    ],
+    components: rows,
+  });
+}
+
+/**
+ * Handle Provider select menu
+ */
+export async function handleProviderSelect(
+  interaction: StringSelectMenuInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+  const selectedProvider = interaction.values[0];
+
+  if (!selectedProvider) {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // SECURITY CHECK: Validate premium access on server side
+  if (selectedProvider === "premium" && !isPremiumUser(userId)) {
+    await interaction.reply({
+      content: t(locale, "commands.voice.config.premiumRequired"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Update provider in database
+  // If switching to basic, clear the voice ID
+  if (selectedProvider === "basic") {
+    setUserTTSProfile(userId, { provider: "basic", voiceId: null });
+  } else {
+    setUserTTSProfile(userId, { provider: selectedProvider as "basic" | "premium" });
+  }
+
+  // Rebuild the config interface with updated provider
+  const { embed, rows } = await buildConfigInterface(userId, locale);
+
+  const providerLabel =
+    selectedProvider === "premium"
+      ? t(locale, "commands.voice.config.providerPremiumLabel")
+      : t(locale, "commands.voice.config.providerBasicLabel");
+
+  // Update the message
+  await interaction.update({
+    embeds: [
+      embed.setFooter({
+        text: t(locale, "commands.voice.config.providerUpdated", {
+          provider: providerLabel,
+        }),
+      }),
+    ],
+    components: rows,
+  });
+}
+
+/**
+ * Handle Variant select menu
+ */
+export async function handleVariantSelect(
+  interaction: StringSelectMenuInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+  const selectedVariant = interaction.values[0];
+
+  if (!selectedVariant || selectedVariant === "none") {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // SECURITY CHECK: Validate premium access on server side
+  if (!isPremiumUser(userId)) {
+    await interaction.reply({
+      content: t(locale, "commands.voice.config.premiumRequired"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Update voice ID in database
+  setUserTTSProfile(userId, { voiceId: selectedVariant });
+
+  // Rebuild the config interface
+  const { embed, rows } = await buildConfigInterface(userId, locale);
+
+  const variant = selectedVariant.split("-").pop() || "";
+
+  // Update the message
+  await interaction.update({
+    embeds: [
+      embed.setFooter({
+        text: t(locale, "commands.voice.config.variantUpdated", {
+          variant: `Wavenet ${variant}`,
+        }),
+      }),
+    ],
+    components: rows,
+  });
+}
+
+/**
+ * Main component interaction router
+ */
+export async function handleVoiceComponent(
+  interaction: ButtonInteraction | StringSelectMenuInteraction,
+): Promise<void> {
+  const customId = interaction.customId;
+
+  try {
+    // Button interactions
+    if (interaction.isButton()) {
+      if (customId === "btn_voice_config") {
+        await handleConfigButton(interaction);
+      } else if (customId === "btn_voice_reset") {
+        await handleResetButton(interaction);
+      }
+    }
+    // Select menu interactions
+    else if (interaction.isStringSelectMenu()) {
+      if (customId === "select_voice_language") {
+        await handleLanguageSelect(interaction);
+      } else if (customId === "select_voice_provider") {
+        await handleProviderSelect(interaction);
+      } else if (customId === "select_voice_variant") {
+        await handleVariantSelect(interaction);
+      }
+    }
+  } catch (error) {
+    console.error(`Error handling voice component ${customId}:`, error);
+
+    // Attempt to reply with error
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "An error occurred. Please try again.",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    } catch {}
+  }
+}
+
+/**
+ * Check if an interaction is a voice settings component
+ */
+export function isVoiceComponent(customId: string): boolean {
+  return (
+    customId === "btn_voice_config" ||
+    customId === "btn_voice_reset" ||
+    customId === "select_voice_language" ||
+    customId === "select_voice_provider" ||
+    customId === "select_voice_variant"
+  );
+}

@@ -8,6 +8,7 @@ import { say } from "./commands/tts/say.ts";
 import { stop } from "./commands/tts/stop.ts";
 import { skip } from "./commands/tts/skip.ts";
 import { voices } from "./commands/config/voices.ts";
+import { voice } from "./commands/misc/voice.ts";
 import { queue } from "./commands/tts/queue.ts";
 import { encoreAdmin } from "./commands/admin/premium.ts";
 
@@ -21,6 +22,7 @@ export const commands: Command[] = [
   stop,
   skip,
   voices,
+  voice,
   queue,
   encoreAdmin,
 ];

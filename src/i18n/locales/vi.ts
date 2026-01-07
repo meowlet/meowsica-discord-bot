@@ -284,6 +284,7 @@ export default {
       buttons: {
         configure: "Cấu hình",
         close: "Đóng",
+        notOwner: "Chỉ chủ sở hữu bảng điều khiển mới có thể đóng tin nhắn này.",
       },
       config: {
         title: "Cấu hình Ngôn ngữ",

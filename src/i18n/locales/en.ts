@@ -282,6 +282,7 @@ export default {
       buttons: {
         configure: "Configure",
         close: "Close",
+        notOwner: "Only the dashboard owner can close this message.",
       },
       config: {
         title: "Language Configuration",

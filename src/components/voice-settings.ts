@@ -696,7 +696,7 @@ export async function handleProviderSelect(
 
   const providerLabel =
     selectedProvider === "premium"
-      ? t(locale, "commands.voice.config.providerPremiumLabel")
+      ? t(locale, "commands.voice.config.providerEncoreLabel")
       : t(locale, "commands.voice.config.providerBasicLabel");
 
   // Update the message

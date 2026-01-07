@@ -10,6 +10,7 @@
 import { Database } from "bun:sqlite";
 import type { ChatInputCommandInteraction } from "discord.js";
 import { DEFAULT_LOCALE, type Locale } from "../i18n/index.ts";
+import { DEFAULT_VOICE_LANGUAGE } from "../tts/voices.ts";
 import { initializeSchema } from "./migration.ts";
 import {
   type SubscriptionTier,
@@ -281,7 +282,7 @@ export function getUserVoicePreferences(userId: string): UserVoicePreferences {
   return {
     provider: profile.provider,
     voiceName: profile.voiceId,
-    languageCode: profile.language ?? "en",
+    languageCode: profile.language ?? DEFAULT_VOICE_LANGUAGE,
   };
 }
 

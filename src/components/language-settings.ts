@@ -153,13 +153,36 @@ export async function handleLanguageConfigButton(
 export async function handleLanguageCloseButton(
   interaction: ButtonInteraction,
 ): Promise<void> {
-  // Delete the dashboard message
+  const buttonClickerId = interaction.user.id;
+  const locale = getUserLocale(buttonClickerId);
+
+  // OWNERSHIP CHECK: Verify the button clicker is the original dashboard owner
+  const originalOwnerId = interaction.message.interaction?.user.id;
+  if (!originalOwnerId) {
+    // Message doesn't have interaction metadata (edge case)
+    await interaction.reply({
+      content: t(locale, "commands.language.buttons.notOwner"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  if (buttonClickerId !== originalOwnerId) {
+    // User B clicked Close on User A's dashboard - deny access
+    await interaction.reply({
+      content: t(locale, "commands.language.buttons.notOwner"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Ownership verified - proceed with deletion
   try {
     await interaction.message.delete();
   } catch (error) {
     // If we can't delete, just acknowledge
     await interaction.reply({
-      content: "✅",
+      content: "",
       flags: MessageFlags.Ephemeral,
     });
   }

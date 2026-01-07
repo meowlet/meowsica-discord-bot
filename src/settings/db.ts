@@ -295,11 +295,22 @@ export function setUserTTSProfile(
 ): void {
   const current = getUserTTSProfile(userId);
 
+  // For non-nullable fields, use ?? to merge with current values
   const provider = profile.provider ?? current.provider;
-  const language = profile.language ?? current.language;
-  const voiceId = profile.voiceId ?? current.voiceId;
   const speed = profile.speed ?? current.speed;
   const pitch = profile.pitch ?? current.pitch;
+
+  // For nullable fields, check if property exists in profile object
+  // This allows explicit null values to clear the field
+  // If property is undefined (not provided), use current value
+  const language =
+    "language" in profile && profile.language !== undefined
+      ? profile.language
+      : current.language;
+  const voiceId =
+    "voiceId" in profile && profile.voiceId !== undefined
+      ? profile.voiceId
+      : current.voiceId;
 
   upsertUserTTS.run(userId, provider, language, voiceId, speed, pitch);
 }

@@ -20,10 +20,10 @@ export default {
       title: "Available Commands",
       subtitle: "Here are all the commands you can use:",
       categories: {
-        voice: "Voice Commands",
-        tts: "TTS Commands",
-        config: "Configuration",
-        misc: "Miscellaneous",
+        voice: "🎤 Voice Commands",
+        tts: "🎵 TTS Commands",
+        settings: "⚙️ Settings",
+        misc: "🛠️ Utility",
       },
     },
     lang: {
@@ -235,6 +235,31 @@ export default {
       reset: {
         success: "✅ Settings Reset",
         successDesc: "Your voice settings have been reset to default (Basic Vietnamese).",
+      },
+    },
+    language: {
+      description: "Manage interface language settings",
+      dashboard: {
+        title: "🌐 Language Settings",
+        subtitle: "Manage your interface language preferences",
+        userLanguage: "Your Language",
+        serverLanguage: "Server Language",
+        notSet: "Not set (using default)",
+        priorityNote: "📝 Your personal setting always overrides the server default.",
+      },
+      buttons: {
+        configure: "Configure",
+        close: "Close",
+      },
+      config: {
+        title: "⚙️ Language Configuration",
+        subtitle: "Choose your preferred interface language. Changes are saved automatically.",
+        userPlaceholder: "Select your language...",
+        serverPlaceholder: "Select server language (Admin)...",
+        userUpdated: "Your language has been set to {language}!",
+        serverUpdated: "Server language has been set to {language}!",
+        noPermission: "You need the Manage Server permission to change server settings.",
+        serverOnly: "Server settings can only be changed in a server.",
       },
     },
   },

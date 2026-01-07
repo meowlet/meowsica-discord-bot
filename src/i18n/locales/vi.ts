@@ -20,10 +20,10 @@ export default {
       title: "Danh sách lệnh",
       subtitle: "Đây là tất cả các lệnh bạn có thể sử dụng:",
       categories: {
-        voice: "Lệnh Voice",
-        tts: "Lệnh TTS",
-        config: "Cấu hình",
-        misc: "Khác",
+        voice: "🎤 Lệnh Voice",
+        tts: "🎵 Lệnh TTS",
+        settings: "⚙️ Cài đặt",
+        misc: "🛠️ Tiện ích",
       },
     },
     lang: {
@@ -237,6 +237,31 @@ export default {
       reset: {
         success: "✅ Đã Đặt lại Cài đặt",
         successDesc: "Cài đặt giọng nói của bạn đã được đặt lại về mặc định (Basic Tiếng Việt).",
+      },
+    },
+    language: {
+      description: "Quản lý cài đặt ngôn ngữ giao diện",
+      dashboard: {
+        title: "🌐 Cài đặt Ngôn ngữ",
+        subtitle: "Quản lý tùy chọn ngôn ngữ giao diện của bạn",
+        userLanguage: "Ngôn ngữ của bạn",
+        serverLanguage: "Ngôn ngữ Server",
+        notSet: "Chưa đặt (sử dụng mặc định)",
+        priorityNote: "📝 Cài đặt cá nhân của bạn luôn được ưu tiên hơn mặc định server.",
+      },
+      buttons: {
+        configure: "Cấu hình",
+        close: "Đóng",
+      },
+      config: {
+        title: "⚙️ Cấu hình Ngôn ngữ",
+        subtitle: "Chọn ngôn ngữ giao diện ưa thích của bạn. Thay đổi được lưu tự động.",
+        userPlaceholder: "Chọn ngôn ngữ của bạn...",
+        serverPlaceholder: "Chọn ngôn ngữ server (Admin)...",
+        userUpdated: "Ngôn ngữ của bạn đã được đặt thành {language}!",
+        serverUpdated: "Ngôn ngữ server đã được đặt thành {language}!",
+        noPermission: "Bạn cần quyền Quản lý Server để thay đổi cài đặt server.",
+        serverOnly: "Cài đặt server chỉ có thể thay đổi trong server.",
       },
     },
   },

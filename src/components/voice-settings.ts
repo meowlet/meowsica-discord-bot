@@ -43,64 +43,36 @@ function getUserLocale(userId: string): Locale {
   return getDbUserLocale(userId) || DEFAULT_LOCALE;
 }
 
-// Language flag emojis
-const LANGUAGE_FLAGS: Record<string, string> = {
-  // Priority languages
-  vi: "🇻🇳",
-  en: "🇺🇸",
-  ja: "🇯🇵",
-  ko: "🇰🇷",
-  "zh-CN": "🇨🇳",
-  // Alphabetical (A-I)
-  af: "🇿🇦",
-  ar: "🇸🇦",
-  hy: "🇦🇲",
-  bn: "🇧🇩",
-  ca: "🇪🇸",
-  hr: "🇭🇷",
-  cs: "🇨🇿",
-  da: "🇩🇰",
-  nl: "🇳🇱",
-  tl: "🇵🇭",
-  fi: "🇫🇮",
-  fr: "🇫🇷",
-  de: "🇩🇪",
-  el: "🇬🇷",
-  hi: "🇮🇳",
-  hu: "🇭🇺",
-  is: "🇮🇸",
-  id: "🇮🇩",
-  it: "🇮🇹",
-  // Alphabetical (J-Z)
-  jw: "🇮🇩",
-  km: "🇰🇭",
-  lv: "🇱🇻",
-  ml: "🇮🇳",
-  mr: "🇮🇳",
-  ne: "🇳🇵",
-  no: "🇳🇴",
-  pl: "🇵🇱",
-  pt: "🇧🇷",
-  ro: "🇷🇴",
-  ru: "🇷🇺",
-  sr: "🇷🇸",
-  si: "🇱🇰",
-  sk: "🇸🇰",
-  es: "🇪🇸",
-  su: "🇮🇩",
-  sw: "🇹🇿",
-  sv: "🇸🇪",
-  ta: "🇮🇳",
-  te: "🇮🇳",
-  th: "🇹🇭",
-  tr: "🇹🇷",
-  uk: "🇺🇦",
-};
+// Emoji policy: Only country flags (from lang.flag) and ✨ for Encore are allowed
 
 // Navigation values for pagination
 const NAV_NEXT = "NAV_NEXT_PAGE";
 const NAV_PREV = "NAV_PREV_PAGE";
 const LANGUAGES_PER_PAGE = 24; // Leave room for 1 navigation option (Discord max 25)
+
+/**
+ * Calculate which page a language appears on based on its index in SUPPORTED_LANGUAGES
+ * 
+ * @param languageCode - The language code (short code or cloudCode)
+ * @returns Page number (1-indexed), defaults to 1 if not found
+ */
+function getLanguagePage(languageCode: string | null): number {
+  if (!languageCode) return 1;
+
+  // Find the language index by matching code or cloudCode
+  const index = SUPPORTED_LANGUAGES.findIndex(
+    (lang) =>
+      lang.code === languageCode ||
+      lang.cloudCode === languageCode ||
+      languageCode.startsWith(lang.code),
+  );
+
+  // If not found, default to page 1
+  if (index === -1) return 1;
+
+  // Calculate page (1-indexed)
+  return Math.floor(index / LANGUAGES_PER_PAGE) + 1;
+}
 
 /**
  * Build language select menu with pagination support
@@ -125,12 +97,11 @@ function buildLanguageSelect(
 
   // Build language options for current page
   const options = pageLanguages.map((lang) => {
-    const flag = LANGUAGE_FLAGS[lang.code] || "🌐";
     return new StringSelectMenuOptionBuilder()
-      .setLabel(`${lang.name}`)
+      .setLabel(lang.name)
       .setDescription(lang.nativeName)
       .setValue(lang.cloudCode)
-      .setEmoji(flag)
+      .setEmoji(lang.flag)
       .setDefault(
         lang.code === currentCode ||
           lang.cloudCode === currentCode ||
@@ -138,15 +109,14 @@ function buildLanguageSelect(
       );
   });
 
-  // Add navigation options if needed
+  // Add navigation options if needed (no emojis per style policy)
   if (page < totalPages) {
     // Not on last page - show "More Languages..." option
     options.push(
       new StringSelectMenuOptionBuilder()
         .setLabel(t(locale, "commands.voice.config.moreLanguages"))
         .setDescription(t(locale, "commands.voice.config.moreLanguagesDesc"))
-        .setValue(NAV_NEXT)
-        .setEmoji("➡️"),
+        .setValue(NAV_NEXT),
     );
   }
 
@@ -156,8 +126,7 @@ function buildLanguageSelect(
       new StringSelectMenuOptionBuilder()
         .setLabel(t(locale, "commands.voice.config.backToTop"))
         .setDescription(t(locale, "commands.voice.config.backToTopDesc"))
-        .setValue(NAV_PREV)
-        .setEmoji("⬅️"),
+        .setValue(NAV_PREV),
     );
   }
 
@@ -181,17 +150,16 @@ function buildProviderSelect(
   isUserPremium: boolean,
   locale: Locale,
 ): ActionRowBuilder<StringSelectMenuBuilder> {
-  // Base option available to all users
+  // Base option available to all users (no emoji per style policy)
   const options: StringSelectMenuOptionBuilder[] = [
     new StringSelectMenuOptionBuilder()
       .setLabel(t(locale, "commands.voice.config.providerBasicLabel"))
       .setDescription(t(locale, "commands.voice.config.providerBasicDesc"))
       .setValue("basic")
-      .setEmoji("🔊")
       .setDefault(currentProvider === "basic"),
   ];
 
-  // Premium option only visible to Encore subscribers
+  // Premium option only visible to Encore subscribers (✨ sparkle allowed)
   if (isUserPremium) {
     options.push(
       new StringSelectMenuOptionBuilder()
@@ -242,13 +210,11 @@ async function buildVariantSelect(
       if (voices.length > 0) {
         options = voices.slice(0, 25).map((voice) => {
           const variant = voice.value.split("-").pop() || "";
-          const genderEmoji =
-            voice.gender === "FEMALE" ? "♀️" : voice.gender === "MALE" ? "♂️" : "⚪";
+          const genderLabel = voice.gender === "FEMALE" ? "Female" : voice.gender === "MALE" ? "Male" : "Neutral";
           return new StringSelectMenuOptionBuilder()
             .setLabel(`Wavenet ${variant}`)
-            .setDescription(`${voice.gender === "FEMALE" ? "Female" : voice.gender === "MALE" ? "Male" : "Neutral"} voice`)
+            .setDescription(`${genderLabel} voice`)
             .setValue(voice.value)
-            .setEmoji(genderEmoji)
             .setDefault(voice.value === currentVoiceId);
         });
       }
@@ -273,8 +239,7 @@ async function buildVariantSelect(
       new StringSelectMenuOptionBuilder()
         .setLabel(t(locale, "commands.voice.config.variantNotAvailable"))
         .setDescription(description)
-        .setValue("none")
-        .setEmoji("🔒"),
+        .setValue("none"),
     );
   }
 
@@ -326,8 +291,10 @@ async function buildConfigInterface(
     .setDescription(t(locale, "commands.voice.config.subtitle"))
     .setColor(Colors.Primary);
 
-  // Use page from state, default to 1
-  const languagePage = state.languagePage ?? 1;
+  // Determine which page to show
+  // Priority 1: Explicit page from state (e.g., user clicked Next/Prev)
+  // Priority 2: Auto-detect based on user's current language selection
+  const languagePage = state.languagePage ?? getLanguagePage(profile.language);
   const languageRow = buildLanguageSelect(profile.language, locale, languagePage);
   const providerRow = buildProviderSelect(profile.provider, isUserPremium, locale);
 
@@ -488,8 +455,9 @@ export async function handleLanguageSelect(
   // Update database
   setUserTTSProfile(userId, updates);
 
-  // Rebuild the config interface with updated settings (reset to page 1)
-  const { embed, rows } = await buildConfigInterface(userId, locale, { languagePage: 1 });
+  // Rebuild the config interface with updated settings
+  // Page is auto-detected from the newly selected language
+  const { embed, rows } = await buildConfigInterface(userId, locale);
 
   const langInfo = getSupportedLanguageByCode(selectedLanguage);
   const langFlag = getLanguageFlag(selectedLanguage);
@@ -500,7 +468,7 @@ export async function handleLanguageSelect(
     embeds: [
       embed.setFooter({
         text: t(locale, "commands.voice.config.languageUpdated", {
-          language: `${langFlag} ${langName}`,
+          language: `${langName}`,
         }),
       }),
     ],

@@ -28,66 +28,13 @@ import {
   getSupportedLanguageByCode,
 } from "../../constants/languages.ts";
 
-// Language flag emojis
-const LANGUAGE_FLAGS: Record<string, string> = {
-  // Priority languages
-  vi: "🇻🇳",
-  en: "🇺🇸",
-  ja: "🇯🇵",
-  ko: "🇰🇷",
-  "zh-CN": "🇨🇳",
-  // Alphabetical (A-I)
-  af: "🇿🇦",
-  ar: "🇸🇦",
-  hy: "🇦🇲",
-  bn: "🇧🇩",
-  ca: "🇪🇸",
-  hr: "🇭🇷",
-  cs: "🇨🇿",
-  da: "🇩🇰",
-  nl: "🇳🇱",
-  tl: "🇵🇭",
-  fi: "🇫🇮",
-  fr: "🇫🇷",
-  de: "🇩🇪",
-  el: "🇬🇷",
-  hi: "🇮🇳",
-  hu: "🇭🇺",
-  is: "🇮🇸",
-  id: "🇮🇩",
-  it: "🇮🇹",
-  // Alphabetical (J-Z)
-  jw: "🇮🇩",
-  km: "🇰🇭",
-  lv: "🇱🇻",
-  ml: "🇮🇳",
-  mr: "🇮🇳",
-  ne: "🇳🇵",
-  no: "🇳🇴",
-  pl: "🇵🇱",
-  pt: "🇧🇷",
-  ro: "🇷🇴",
-  ru: "🇷🇺",
-  sr: "🇷🇸",
-  si: "🇱🇰",
-  sk: "🇸🇰",
-  es: "🇪🇸",
-  su: "🇮🇩",
-  sw: "🇹🇿",
-  sv: "🇸🇪",
-  ta: "🇮🇳",
-  te: "🇮🇳",
-  th: "🇹🇭",
-  tr: "🇹🇷",
-  uk: "🇺🇦",
-};
-
 /**
  * Get flag emoji for a language code
+ * Uses the flag property from SUPPORTED_LANGUAGES
  */
 export function getLanguageFlag(code: string): string {
-  const shortCode = code.includes("-") ? code.split("-")[0] : code;
-  return LANGUAGE_FLAGS[shortCode || ""] || "🌐";
+  const lang = getSupportedLanguageByCode(code);
+  return lang?.flag || "🌐";
 }
 
 /**
@@ -159,17 +106,17 @@ export function buildVoiceDashboardEmbed(
       {
         name: t(locale, "commands.voice.dashboard.language"),
         value: langDisplay,
-        inline: true,
+        inline: false,
       },
       {
         name: t(locale, "commands.voice.dashboard.provider"),
         value: providerDisplay,
-        inline: true,
+        inline: false,
       },
       {
         name: t(locale, "commands.voice.dashboard.model"),
         value: modelDisplay,
-        inline: true,
+        inline: false,
       },
       {
         name: t(locale, "commands.voice.dashboard.status"),
@@ -196,13 +143,11 @@ export function buildDashboardButtons(locale: string): ActionRowBuilder<ButtonBu
     new ButtonBuilder()
       .setCustomId("btn_voice_config")
       .setLabel(t(locale, "commands.voice.buttons.config"))
-      .setStyle(ButtonStyle.Primary)
-      .setEmoji("⚙️"),
+      .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId("btn_voice_reset")
       .setLabel(t(locale, "commands.voice.buttons.reset"))
-      .setStyle(ButtonStyle.Danger)
-      .setEmoji("🔄"),
+      .setStyle(ButtonStyle.Danger),
   );
 }
 

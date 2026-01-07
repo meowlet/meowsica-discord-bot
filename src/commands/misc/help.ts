@@ -5,13 +5,12 @@ import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
 import { getLocale } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 
-type CommandCategory = "voice" | "tts" | "config" | "misc";
+type CommandCategory = "voice" | "tts" | "settings" | "misc";
 
 interface CommandInfo {
   name: string;
   description: string;
   category: CommandCategory;
-  subcommands?: string[];
 }
 
 const getCommandInfo = (cmd: Command, locale: string): CommandInfo => {
@@ -19,27 +18,25 @@ const getCommandInfo = (cmd: Command, locale: string): CommandInfo => {
   const description = t(locale, `commands.${name}.description`);
 
   let category: CommandCategory = "misc";
-  let subcommands: string[] | undefined;
 
+  // Voice commands
   if (name === "join" || name === "leave") {
     category = "voice";
-  } else if (name === "say" || name === "stop" || name === "skip" || name === "queue") {
+  }
+  // TTS commands
+  else if (name === "say" || name === "stop" || name === "skip" || name === "queue") {
     category = "tts";
-  } else if (name === "lang" || name === "voices") {
-    category = "config";
-    if (name === "lang") {
-      subcommands = [
-        `\`/lang interface user\` - ${t(locale, "commands.lang.interface.user")}`,
-        `\`/lang interface server\` - ${t(locale, "commands.lang.interface.server")}`,
-        `\`/lang speech user\` - ${t(locale, "commands.lang.speech.user")}`,
-        `\`/lang speech server\` - ${t(locale, "commands.lang.speech.server")}`,
-      ];
-    }
-  } else {
+  }
+  // Settings commands (dashboard-style)
+  else if (name === "voice" || name === "language") {
+    category = "settings";
+  }
+  // Misc commands
+  else if (name === "ping" || name === "help") {
     category = "misc";
   }
 
-  return { name, description, category, subcommands };
+  return { name, description, category };
 };
 
 export const help: Command = {
@@ -50,12 +47,14 @@ export const help: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
 
-    const commandInfos = commands.map((cmd) => getCommandInfo(cmd, locale));
+    // Filter out admin commands from help display
+    const visibleCommands = commands.filter(cmd => cmd.data.name !== "encoreadmin");
+    const commandInfos = visibleCommands.map((cmd) => getCommandInfo(cmd, locale));
 
     const categories: Record<CommandCategory, CommandInfo[]> = {
       voice: [],
       tts: [],
-      config: [],
+      settings: [],
       misc: [],
     };
 
@@ -68,9 +67,10 @@ export const help: Command = {
       .setColor(Colors.Primary)
       .setDescription(t(locale, "commands.help.subtitle"));
 
+    // 🎤 Voice Commands
     if (categories.voice.length > 0) {
       const voiceCommands = categories.voice
-        .map((cmd) => `**/${cmd.name}** - ${cmd.description}`)
+        .map((cmd) => `**/${cmd.name}** — ${cmd.description}`)
         .join("\n");
       embed.addFields({
         name: t(locale, "commands.help.categories.voice"),
@@ -79,9 +79,10 @@ export const help: Command = {
       });
     }
 
+    // 🎵 TTS Commands
     if (categories.tts.length > 0) {
       const ttsCommands = categories.tts
-        .map((cmd) => `**/${cmd.name}** - ${cmd.description}`)
+        .map((cmd) => `**/${cmd.name}** — ${cmd.description}`)
         .join("\n");
       embed.addFields({
         name: t(locale, "commands.help.categories.tts"),
@@ -90,26 +91,22 @@ export const help: Command = {
       });
     }
 
-    if (categories.config.length > 0) {
-      const configCommands = categories.config
-        .map((cmd) => {
-          let text = `**/${cmd.name}** - ${cmd.description}`;
-          if (cmd.subcommands && cmd.subcommands.length > 0) {
-            text += `\n${cmd.subcommands.map((sub) => `  ${sub}`).join("\n")}`;
-          }
-          return text;
-        })
-        .join("\n\n");
+    // ⚙️ Settings Commands
+    if (categories.settings.length > 0) {
+      const settingsCommands = categories.settings
+        .map((cmd) => `**/${cmd.name}** — ${cmd.description}`)
+        .join("\n");
       embed.addFields({
-        name: t(locale, "commands.help.categories.config"),
-        value: configCommands,
+        name: t(locale, "commands.help.categories.settings"),
+        value: settingsCommands,
         inline: false,
       });
     }
 
+    // 🛠️ Utility Commands
     if (categories.misc.length > 0) {
       const miscCommands = categories.misc
-        .map((cmd) => `**/${cmd.name}** - ${cmd.description}`)
+        .map((cmd) => `**/${cmd.name}** — ${cmd.description}`)
         .join("\n");
       embed.addFields({
         name: t(locale, "commands.help.categories.misc"),

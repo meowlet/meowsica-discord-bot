@@ -13,6 +13,10 @@ import {
   isVoiceComponent,
   handleVoiceComponent,
 } from "../components/voice-settings.ts";
+import {
+  isLanguageComponent,
+  handleLanguageComponent,
+} from "../components/language-settings.ts";
 
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
@@ -97,6 +101,12 @@ async function handleComponent(
     // Route voice settings components
     if (isVoiceComponent(customId)) {
       await handleVoiceComponent(interaction);
+      return;
+    }
+
+    // Route language settings components
+    if (isLanguageComponent(customId)) {
+      await handleLanguageComponent(interaction);
       return;
     }
 

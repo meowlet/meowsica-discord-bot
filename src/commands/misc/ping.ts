@@ -30,12 +30,12 @@ export const ping: Command = {
         {
           name: t(locale, "commands.ping.latency"),
           value: `\`${latency}ms\``,
-          inline: true,
+          inline: false,
         },
         {
           name: t(locale, "commands.ping.apiLatency"),
           value: `\`${apiLatency}ms\``,
-          inline: true,
+          inline: false,
         },
       )
       .setColor(Colors.Primary);

@@ -119,6 +119,17 @@ export async function getWavenetVoicesByLanguage(languageCode: string): Promise<
 }
 
 /**
+ * Check if a language has Wavenet voice support
+ * Used for capability checks before rendering Encore options
+ * @param languageCode - The language code (short or full, e.g., "vi" or "vi-VN")
+ * @returns true if Wavenet voices are available for this language
+ */
+export async function hasWavenetSupport(languageCode: string): Promise<boolean> {
+  const voices = await getWavenetVoicesByLanguage(languageCode);
+  return voices.length > 0;
+}
+
+/**
  * Filter Wavenet voices based on search query within a language
  * Only returns Wavenet voices for Premium users
  */

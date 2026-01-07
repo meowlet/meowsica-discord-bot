@@ -1,6 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder, MessageFlags } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import { getLocale } from "../../settings/db.ts";
 import { isConnected } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
@@ -10,7 +10,10 @@ import { getVoiceLanguageDisplay } from "../../tts/voices.ts";
 export const queue: Command = {
   data: new SlashCommandBuilder()
     .setName("queue")
-    .setDescription(t(DEFAULT_LOCALE, "commands.queue.description")),
+    .setDescription("Show the current TTS queue")
+    .setDescriptionLocalizations({
+      vi: "Xem hàng đợi TTS hiện tại",
+    }),
 
   async execute(interaction) {
     const locale = getLocale(interaction);
@@ -54,7 +57,7 @@ export const queue: Command = {
       const lang = status.currentItem.payloads[0]?.language ?? "en";
 
       embed.addFields({
-        name: `🔊 ${t(locale, "commands.queue.nowPlaying")}`,
+        name: t(locale, "commands.queue.nowPlaying"),
         value: `"${truncated}"\n${getVoiceLanguageDisplay(lang)}`,
         inline: false,
       });

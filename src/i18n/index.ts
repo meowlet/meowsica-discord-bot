@@ -8,7 +8,7 @@ type TranslationObject = { [key: string]: TranslationValue };
 
 const locales: Record<Locale, TranslationObject> = { en, vi };
 
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE: Locale = "vi";
 export const SUPPORTED_LOCALES: Locale[] = ["en", "vi"];
 
 export function getTranslations(locale: Locale | string): TranslationObject {

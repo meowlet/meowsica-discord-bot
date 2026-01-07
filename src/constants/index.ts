@@ -1,5 +1,7 @@
 export const Colors = {
   Primary: 0x5865f2,
+  Blurple: 0x5865f2,
+  Encore: 0xffd700,
 
   Success: 0x57f287,
 

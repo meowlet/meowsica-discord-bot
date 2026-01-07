@@ -1,13 +1,16 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import { getLocale } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 
 export const ping: Command = {
   data: new SlashCommandBuilder()
     .setName("ping")
-    .setDescription(t(DEFAULT_LOCALE, "commands.ping.description")),
+    .setDescription("Replies with Pong and shows latency")
+    .setDescriptionLocalizations({
+      vi: "Kiểm tra độ trễ của bot",
+    }),
 
   async execute(interaction) {
     const locale = getLocale(interaction);

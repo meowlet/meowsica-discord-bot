@@ -15,7 +15,7 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from "../../i18n/index.ts";
+import { t, SUPPORTED_LOCALES, type Locale } from "../../i18n/index.ts";
 import {
   getLocale,
   getUserLocale,
@@ -98,7 +98,10 @@ export function buildLanguageDashboardButtons(locale: string): ActionRowBuilder<
 export const language: Command = {
   data: new SlashCommandBuilder()
     .setName("language")
-    .setDescription(t(DEFAULT_LOCALE, "commands.language.description")),
+    .setDescription("Manage interface language settings")
+    .setDescriptionLocalizations({
+      vi: "Quản lý cài đặt ngôn ngữ giao diện",
+    }),
 
   async execute(interaction) {
     const locale = getLocale(interaction);

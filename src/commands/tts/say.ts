@@ -5,7 +5,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import { getLocale } from "../../settings/db.ts";
 import {
   joinChannel,
@@ -18,10 +18,8 @@ import { type VoiceLanguageCode } from "../../tts/voices.ts";
 import { validateTTSText } from "../../tts/provider.ts";
 import { getTTSLanguage } from "../../settings/tts.ts";
 import {
-  SUPPORTED_LANGUAGES,
   filterSupportedLanguages,
   isSupportedLanguage,
-  getSupportedLanguageByCode,
 } from "../../constants/languages.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
@@ -29,18 +27,27 @@ const MAX_MESSAGE_LENGTH = 500;
 export const say: Command = {
   data: new SlashCommandBuilder()
     .setName("say")
-    .setDescription(t(DEFAULT_LOCALE, "commands.say.description"))
+    .setDescription("Say something using text-to-speech")
+    .setDescriptionLocalizations({
+      vi: "Doc van ban bang giong noi",
+    })
     .addStringOption((option) =>
       option
         .setName("message")
-        .setDescription(t(DEFAULT_LOCALE, "commands.say.messageOption"))
+        .setDescription("The message to speak")
+        .setDescriptionLocalizations({
+          vi: "Noi dung can doc",
+        })
         .setRequired(true)
         .setMaxLength(MAX_MESSAGE_LENGTH),
     )
     .addStringOption((option) =>
       option
         .setName("lang")
-        .setDescription(t(DEFAULT_LOCALE, "commands.say.langOption"))
+        .setDescription("Language for TTS (overrides your default)")
+        .setDescriptionLocalizations({
+          vi: "Ngon ngu TTS (ghi de mac dinh cua ban)",
+        })
         .setRequired(false)
         .setAutocomplete(true),
     ),
@@ -118,53 +125,17 @@ export const say: Command = {
         language,
         interaction.user.id,
       );
-      const { queued, position, isEncoreMode, providerLabel, modelLabel } = result;
-      const displayMessage =
-        message.length > 100 ? message.slice(0, 100) + "..." : message;
-      const title = isEncoreMode
-        ? `${t(locale, "encore.badge")} - ${t(locale, "commands.say.success")}`
-        : t(locale, "commands.say.success");
+      const { isEncoreMode } = result;
+
+      // Minimalist embed: color indicates tier, description shows text, footer shows user
       const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setColor(isEncoreMode ? 0xffd700 : Colors.Success);
-      if (queued) {
-        embed.setDescription(
-          t(locale, "commands.say.queued", { message: displayMessage }),
-        );
-        embed.addFields({
-          name: "Queue Position",
-          value: `#${position}`,
-          inline: true,
+        .setColor(isEncoreMode ? Colors.Encore : Colors.Blurple)
+        .setDescription(message)
+        .setFooter({
+          text: interaction.user.username,
+          iconURL: interaction.user.displayAvatarURL(),
         });
-      } else {
-        embed.setDescription(
-          t(locale, "commands.say.speaking", { message: displayMessage }),
-        );
-      }
-      const langInfo = getSupportedLanguageByCode(language);
-      const languageDisplay = langInfo
-        ? `${langInfo.name} (${langInfo.nativeName})`
-        : language;
-      embed.addFields(
-        {
-          name: "Language",
-          value: languageDisplay,
-          inline: true,
-        },
-        {
-          name: "Provider",
-          value: providerLabel,
-          inline: true,
-        },
-        {
-          name: "Model",
-          value: modelLabel,
-          inline: true,
-        },
-      );
-      if (isEncoreMode) {
-        embed.setFooter({ text: t(locale, "encore.modeActive") });
-      }
+
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       const embed = new EmbedBuilder()

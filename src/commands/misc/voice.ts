@@ -14,7 +14,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import {
   getLocale,
   isPremiumUser,
@@ -79,7 +79,7 @@ export function buildVoiceDashboardEmbed(
   // Get provider display
   const providerDisplay =
     ttsProfile.provider === "premium"
-      ? t(locale, "commands.voice.dashboard.providerPremium")
+      ? t(locale, "commands.voice.dashboard.providerEncore")
       : t(locale, "commands.voice.dashboard.providerBasic");
 
   // Get voice model display
@@ -154,7 +154,10 @@ export function buildDashboardButtons(locale: string): ActionRowBuilder<ButtonBu
 export const voice: Command = {
   data: new SlashCommandBuilder()
     .setName("voice")
-    .setDescription(t(DEFAULT_LOCALE, "commands.voice.description")),
+    .setDescription("Open your voice settings dashboard")
+    .setDescriptionLocalizations({
+      vi: "Mở bảng cài đặt giọng nói của bạn",
+    }),
 
   async execute(interaction) {
     const locale = getLocale(interaction);

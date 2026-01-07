@@ -28,7 +28,7 @@ import {
   SUPPORTED_LANGUAGES,
   getSupportedLanguageByCode,
 } from "../constants/languages.ts";
-import { getWavenetVoicesByLanguage } from "../services/GoogleTTSService.ts";
+import { getWavenetVoicesByLanguage, hasWavenetSupport } from "../services/GoogleTTSService.ts";
 import {
   buildVoiceDashboardEmbed,
   buildDashboardButtons,
@@ -144,27 +144,33 @@ function buildLanguageSelect(
  * Strict Visibility Control:
  * - Free Users: Only see "Basic" option
  * - Premium Users: See both "Basic" and "Encore" options
+ * - CAPABILITY CHECK: If language doesn't support Wavenet, hide Encore option
  */
 function buildProviderSelect(
   currentProvider: string,
   isUserPremium: boolean,
+  supportsWavenet: boolean,
   locale: Locale,
 ): ActionRowBuilder<StringSelectMenuBuilder> {
+  // Determine if Encore option should be shown
+  // Must be Premium user AND the selected language must support Wavenet
+  const showEncoreOption = isUserPremium && supportsWavenet;
+
   // Base option available to all users (no emoji per style policy)
   const options: StringSelectMenuOptionBuilder[] = [
     new StringSelectMenuOptionBuilder()
       .setLabel(t(locale, "commands.voice.config.providerBasicLabel"))
       .setDescription(t(locale, "commands.voice.config.providerBasicDesc"))
       .setValue("basic")
-      .setDefault(currentProvider === "basic"),
+      .setDefault(currentProvider === "basic" || !showEncoreOption),
   ];
 
-  // Premium option only visible to Encore subscribers (✨ sparkle allowed)
-  if (isUserPremium) {
+  // Premium option only visible to Encore subscribers AND if language supports Wavenet
+  if (showEncoreOption) {
     options.push(
       new StringSelectMenuOptionBuilder()
-        .setLabel(t(locale, "commands.voice.config.providerPremiumLabel"))
-        .setDescription(t(locale, "commands.voice.config.providerPremiumDesc"))
+        .setLabel(t(locale, "commands.voice.config.providerEncoreLabel"))
+        .setDescription(t(locale, "commands.voice.config.providerEncoreDesc"))
         .setValue("premium")
         .setEmoji("✨")
         .setDefault(currentProvider === "premium"),
@@ -174,12 +180,11 @@ function buildProviderSelect(
   const select = new StringSelectMenuBuilder()
     .setCustomId("select_voice_provider")
     .setPlaceholder(
-      isUserPremium
+      showEncoreOption
         ? t(locale, "commands.voice.config.providerPlaceholder")
         : t(locale, "commands.voice.config.providerBasicOnly"),
     )
     .addOptions(options);
-  // Menu stays enabled even for free users (per requirement)
 
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 }
@@ -228,7 +233,7 @@ async function buildVariantSelect(
     // Determine the reason for being disabled
     let description: string;
     if (!isUserPremium) {
-      description = t(locale, "commands.voice.config.variantRequiresPremium");
+      description = t(locale, "commands.voice.config.variantRequiresEncore");
     } else if (currentProvider !== "premium") {
       description = t(locale, "commands.voice.config.variantBasicMode");
     } else {
@@ -268,8 +273,9 @@ interface ConfigState {
  * 
  * Implements auto-downgrade and strict visibility control:
  * - Auto-downgrades expired premium users to basic
- * - Only shows variant row when user is in Encore mode
+ * - Only shows variant row when user is in Encore mode AND language supports Wavenet
  * - Supports paginated language selection
+ * - CAPABILITY CHECK: Hides Encore options if language doesn't support Wavenet
  */
 async function buildConfigInterface(
   userId: string,
@@ -286,26 +292,44 @@ async function buildConfigInterface(
   const profile = getUserTTSProfile(userId);
   const isUserPremium = isPremiumUser(userId);
 
+  // CAPABILITY CHECK: Does the selected language support Wavenet voices?
+  const langCode = profile.language || "vi-VN";
+  const supportsWavenet = await hasWavenetSupport(langCode);
+
+  // Determine effective provider for UI rendering
+  // If language doesn't support Wavenet, treat as basic mode visually
+  const effectiveProvider = supportsWavenet ? profile.provider : "basic";
+
   const embed = new EmbedBuilder()
     .setTitle(t(locale, "commands.voice.config.title"))
     .setDescription(t(locale, "commands.voice.config.subtitle"))
     .setColor(Colors.Primary);
+
+  // Add footnote if Premium user but language lacks Wavenet support
+  if (isUserPremium && !supportsWavenet) {
+    embed.setFooter({
+      text: t(locale, "commands.voice.config.noWavenetForLanguage"),
+    });
+  }
 
   // Determine which page to show
   // Priority 1: Explicit page from state (e.g., user clicked Next/Prev)
   // Priority 2: Auto-detect based on user's current language selection
   const languagePage = state.languagePage ?? getLanguagePage(profile.language);
   const languageRow = buildLanguageSelect(profile.language, locale, languagePage);
-  const providerRow = buildProviderSelect(profile.provider, isUserPremium, locale);
+  const providerRow = buildProviderSelect(effectiveProvider, isUserPremium, supportsWavenet, locale);
 
-  // Build rows array - variant row only included when in Encore mode
+  // Build rows array - variant row only included when in Encore mode AND language supports Wavenet
   const rows: ActionRowBuilder<StringSelectMenuBuilder>[] = [languageRow, providerRow];
 
-  // STRICT CONDITION: Only add variant row if user is Premium AND provider is 'premium'
-  const isEncoreMode = isUserPremium && profile.provider === "premium";
+  // STRICT CONDITION: Only add variant row if:
+  // 1. User is Premium AND
+  // 2. Provider is 'premium' AND
+  // 3. Language supports Wavenet
+  const isEncoreMode = isUserPremium && effectiveProvider === "premium" && supportsWavenet;
   if (isEncoreMode) {
     const variantRow = await buildVariantSelect(
-      profile.provider,
+      effectiveProvider,
       profile.language,
       profile.voiceId,
       isUserPremium,
@@ -427,22 +451,31 @@ export async function handleLanguageSelect(
   const currentProfile = getUserTTSProfile(userId);
   const isUserPremium = isPremiumUser(userId);
 
+  // CAPABILITY CHECK: Does the NEW language support Wavenet?
+  const supportsWavenet = await hasWavenetSupport(selectedLanguage);
+
   // Build the update object
-  const updates: { language: string; voiceId?: string | null } = {
+  const updates: { language: string; provider?: "basic" | "premium"; voiceId?: string | null } = {
     language: selectedLanguage,
   };
 
-  // AUTO-SELECT LOGIC: If user is in Premium/Encore mode, auto-select first voice
-  if (isUserPremium && currentProfile.provider === "premium") {
+  // AUTO-FALLBACK LOGIC:
+  // If the new language doesn't support Wavenet, force Basic mode
+  if (!supportsWavenet) {
+    // Force downgrade to Basic for this language
+    updates.provider = "basic";
+    updates.voiceId = null;
+  } else if (isUserPremium && currentProfile.provider === "premium") {
+    // Language supports Wavenet AND user is in Encore mode
+    // Auto-select first available voice
     try {
-      // Fetch Wavenet voices for the NEW language
       const validVoices = await getWavenetVoicesByLanguage(selectedLanguage);
 
       if (validVoices.length > 0) {
         // Pick the first voice as safe default
         updates.voiceId = validVoices[0]?.value || null;
       } else {
-        // Edge case: No voices found for this language, clear the voice
+        // Edge case: hasWavenetSupport returned true but no voices (shouldn't happen)
         updates.voiceId = null;
       }
     } catch (error) {
@@ -497,7 +530,7 @@ export async function handleProviderSelect(
   // SECURITY CHECK: Validate premium access on server side
   if (selectedProvider === "premium" && !isPremiumUser(userId)) {
     await interaction.reply({
-      content: t(locale, "commands.voice.config.premiumRequired"),
+      content: t(locale, "commands.voice.config.encoreRequired"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -553,7 +586,7 @@ export async function handleVariantSelect(
   // SECURITY CHECK: Validate premium access on server side
   if (!isPremiumUser(userId)) {
     await interaction.reply({
-      content: t(locale, "commands.voice.config.premiumRequired"),
+      content: t(locale, "commands.voice.config.encoreRequired"),
       flags: MessageFlags.Ephemeral,
     });
     return;

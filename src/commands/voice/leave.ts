@@ -5,7 +5,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import { getLocale } from "../../settings/db.ts";
 import {
   leaveChannel,
@@ -17,7 +17,10 @@ import { Colors } from "../../constants/index.ts";
 export const leave: Command = {
   data: new SlashCommandBuilder()
     .setName("leave")
-    .setDescription(t(DEFAULT_LOCALE, "commands.leave.description")),
+    .setDescription("Leave the voice channel")
+    .setDescriptionLocalizations({
+      vi: "Rời khỏi kênh thoại",
+    }),
 
   async execute(interaction) {
     const locale = getLocale(interaction);

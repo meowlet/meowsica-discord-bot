@@ -269,6 +269,116 @@ interface ConfigState {
 }
 
 /**
+ * Speed options for Basic provider (Binary: Normal or Slow)
+ * The "magic number" 0.25 is used to detect Slow Mode in the database
+ * (0.25 is the minimum allowed by the DB constraint)
+ */
+const BASIC_SPEED_OPTIONS = [
+  { label: "speedNormal", value: "1.0", description: "speedNormalDesc" },
+  { label: "speedSlow", value: "0.25", description: "speedSlowDesc" },
+] as const;
+
+/**
+ * Speed options for Premium (Encore) provider
+ * Full granular control: 0.25x to 4.0x
+ */
+const PREMIUM_SPEED_OPTIONS = [
+  { label: "speed025x", value: "0.25" },
+  { label: "speed05x", value: "0.5" },
+  { label: "speed075x", value: "0.75" },
+  { label: "speed10x", value: "1.0" },
+  { label: "speed125x", value: "1.25" },
+  { label: "speed15x", value: "1.5" },
+  { label: "speed20x", value: "2.0" },
+  { label: "speed30x", value: "3.0" },
+  { label: "speed40x", value: "4.0" },
+] as const;
+
+/**
+ * Pitch options for Premium (Encore) provider
+ * Range: -20.0 to +20.0 (we offer preset values)
+ */
+const PITCH_OPTIONS = [
+  { label: "pitchDeep", value: "-5.0", description: "pitchDeepDesc" },
+  { label: "pitchMediumLow", value: "-2.5", description: "pitchMediumLowDesc" },
+  { label: "pitchNormal", value: "0.0", description: "pitchNormalDesc" },
+  { label: "pitchMediumHigh", value: "2.5", description: "pitchMediumHighDesc" },
+  { label: "pitchHigh", value: "5.0", description: "pitchHighDesc" },
+] as const;
+
+/**
+ * Build speed select menu
+ * 
+ * Dynamic options based on provider:
+ * - Basic: Normal (1.0) or Slow (0.24) only
+ * - Premium: Full range from 0.25x to 4.0x
+ */
+function buildSpeedSelect(
+  currentSpeed: number,
+  isPremiumProvider: boolean,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const options = isPremiumProvider ? PREMIUM_SPEED_OPTIONS : BASIC_SPEED_OPTIONS;
+  
+  const selectOptions = options.map((opt) => {
+    const optionBuilder = new StringSelectMenuOptionBuilder()
+      .setLabel(t(locale, `commands.voice.config.${opt.label}`))
+      .setValue(opt.value);
+    
+    // Add description if available
+    if ("description" in opt && opt.description) {
+      optionBuilder.setDescription(t(locale, `commands.voice.config.${opt.description}`));
+    }
+    
+    // For Basic provider, mark as default based on threshold (<= 0.25 = Slow)
+    if (!isPremiumProvider) {
+      const isSlowMode = currentSpeed <= 0.25;
+      const isThisSlowOption = opt.value === "0.25";
+      optionBuilder.setDefault(isSlowMode === isThisSlowOption);
+    } else {
+      // For Premium, match exact value (with some tolerance for float comparison)
+      const optValue = parseFloat(opt.value);
+      optionBuilder.setDefault(Math.abs(currentSpeed - optValue) < 0.01);
+    }
+    
+    return optionBuilder;
+  });
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId("select_voice_speed")
+    .setPlaceholder(t(locale, "commands.voice.config.speedPlaceholder"))
+    .addOptions(selectOptions);
+
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+/**
+ * Build pitch select menu (Premium/Encore only)
+ * 
+ * Only rendered when user is in Encore mode
+ */
+function buildPitchSelect(
+  currentPitch: number,
+  locale: Locale,
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  const selectOptions = PITCH_OPTIONS.map((opt) => {
+    const optValue = parseFloat(opt.value);
+    return new StringSelectMenuOptionBuilder()
+      .setLabel(t(locale, `commands.voice.config.${opt.label}`))
+      .setDescription(t(locale, `commands.voice.config.${opt.description}`))
+      .setValue(opt.value)
+      .setDefault(Math.abs(currentPitch - optValue) < 0.01);
+  });
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId("select_voice_pitch")
+    .setPlaceholder(t(locale, "commands.voice.config.pitchPlaceholder"))
+    .addOptions(selectOptions);
+
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+}
+
+/**
  * Build complete config interface
  * 
  * Implements auto-downgrade and strict visibility control:
@@ -336,6 +446,19 @@ async function buildConfigInterface(
       locale,
     );
     rows.push(variantRow);
+  }
+
+  // SPEED ROW: Always shown, but options differ by provider
+  // - Basic: Normal (1.0) or Slow (0.24)
+  // - Premium: Full range 0.25x to 4.0x
+  const speedRow = buildSpeedSelect(profile.speed, isEncoreMode, locale);
+  rows.push(speedRow);
+
+  // PITCH ROW: Only shown for Encore mode (Premium provider)
+  // Basic provider does NOT support pitch adjustment
+  if (isEncoreMode) {
+    const pitchRow = buildPitchSelect(profile.pitch, locale);
+    rows.push(pitchRow);
   }
 
   return { embed, rows };
@@ -638,6 +761,138 @@ export async function handleVariantSelect(
 }
 
 /**
+ * Handle Speed select menu
+ * 
+ * Works for both Basic and Premium providers:
+ * - Basic: Normal (1.0) or Slow (0.24) - binary choice
+ * - Premium: Full range 0.25x to 4.0x
+ */
+export async function handleSpeedSelect(
+  interaction: StringSelectMenuInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+  const selectedValue = interaction.values[0];
+
+  if (!selectedValue) {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Parse the selected speed value
+  const speed = parseFloat(selectedValue);
+  if (isNaN(speed)) {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Update speed in database
+  setUserTTSProfile(userId, { speed });
+
+  // Rebuild the config interface
+  const { embed, rows } = await buildConfigInterface(userId, locale);
+
+  // Determine speed label for feedback
+  let speedLabel: string;
+  if (speed < 0.5) {
+    // Basic "Slow Mode"
+    speedLabel = t(locale, "commands.voice.config.speedSlow");
+  } else if (Math.abs(speed - 1.0) < 0.01) {
+    speedLabel = t(locale, "commands.voice.config.speedNormal");
+  } else {
+    speedLabel = `${speed}x`;
+  }
+
+  // Update the message
+  await interaction.update({
+    embeds: [
+      embed.setFooter({
+        text: t(locale, "commands.voice.config.speedUpdated", {
+          speed: speedLabel,
+        }),
+      }),
+    ],
+    components: rows,
+  });
+}
+
+/**
+ * Handle Pitch select menu (Premium/Encore only)
+ */
+export async function handlePitchSelect(
+  interaction: StringSelectMenuInteraction,
+): Promise<void> {
+  const userId = interaction.user.id;
+  const locale = getUserLocale(userId);
+  const selectedValue = interaction.values[0];
+
+  if (!selectedValue) {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // SECURITY CHECK: Pitch is only for Premium users
+  if (!isPremiumUser(userId)) {
+    await interaction.reply({
+      content: t(locale, "commands.voice.config.encoreRequired"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Parse the selected pitch value
+  const pitch = parseFloat(selectedValue);
+  if (isNaN(pitch)) {
+    await interaction.reply({
+      content: t(locale, "common.error"),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // Update pitch in database
+  setUserTTSProfile(userId, { pitch });
+
+  // Rebuild the config interface
+  const { embed, rows } = await buildConfigInterface(userId, locale);
+
+  // Determine pitch label for feedback
+  let pitchLabel: string;
+  if (pitch < -2.5) {
+    pitchLabel = t(locale, "commands.voice.config.pitchDeep");
+  } else if (pitch < 0) {
+    pitchLabel = t(locale, "commands.voice.config.pitchMediumLow");
+  } else if (Math.abs(pitch) < 0.01) {
+    pitchLabel = t(locale, "commands.voice.config.pitchNormal");
+  } else if (pitch < 5) {
+    pitchLabel = t(locale, "commands.voice.config.pitchMediumHigh");
+  } else {
+    pitchLabel = t(locale, "commands.voice.config.pitchHigh");
+  }
+
+  // Update the message
+  await interaction.update({
+    embeds: [
+      embed.setFooter({
+        text: t(locale, "commands.voice.config.pitchUpdated", {
+          pitch: pitchLabel,
+        }),
+      }),
+    ],
+    components: rows,
+  });
+}
+
+/**
  * Main component interaction router
  */
 export async function handleVoiceComponent(
@@ -662,6 +917,10 @@ export async function handleVoiceComponent(
         await handleProviderSelect(interaction);
       } else if (customId === "select_voice_variant") {
         await handleVariantSelect(interaction);
+      } else if (customId === "select_voice_speed") {
+        await handleSpeedSelect(interaction);
+      } else if (customId === "select_voice_pitch") {
+        await handlePitchSelect(interaction);
       }
     }
   } catch (error) {
@@ -688,6 +947,8 @@ export function isVoiceComponent(customId: string): boolean {
     customId === "btn_voice_reset" ||
     customId === "select_voice_language" ||
     customId === "select_voice_provider" ||
-    customId === "select_voice_variant"
+    customId === "select_voice_variant" ||
+    customId === "select_voice_speed" ||
+    customId === "select_voice_pitch"
   );
 }

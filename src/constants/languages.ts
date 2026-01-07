@@ -76,15 +76,25 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
 ] as const;
 
 /**
- * Get supported language by short code
- * Handles both exact matches (e.g., "zh-CN") and short code matches (e.g., "zh")
+ * Get supported language by short code or cloud code
+ * Handles:
+ * - Exact code matches (e.g., "zh-CN" === "zh-CN")
+ * - Exact cloudCode matches (e.g., "cmn-CN" === "cmn-CN")
+ * - Short code matches (e.g., "zh" matches "zh-CN")
  */
 export function getSupportedLanguageByCode(code: string): SupportedLanguage | undefined {
-  // First try exact match (handles cases like "zh-CN" === "zh-CN")
+  // First try exact match on code (handles cases like "zh-CN" === "zh-CN")
   const exactMatch = SUPPORTED_LANGUAGES.find((lang) => lang.code === code);
   if (exactMatch) {
     return exactMatch;
   }
+  
+  // Try exact match on cloudCode (handles cases like "cmn-CN" === "cmn-CN")
+  const cloudCodeMatch = SUPPORTED_LANGUAGES.find((lang) => lang.cloudCode === code);
+  if (cloudCodeMatch) {
+    return cloudCodeMatch;
+  }
+  
   // If no exact match, try matching by short code
   // Extract shortCode from input and compare with each language's code
   const shortCode = code.includes("-") ? code.split("-")[0] : code;

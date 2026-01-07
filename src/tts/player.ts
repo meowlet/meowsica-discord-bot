@@ -14,10 +14,11 @@ import {
   isWavenetAvailable,
   type TTSPayload,
   type TTSProviderType,
+  type AudioTuningOptions,
 } from "./provider.ts";
 import type { VoiceLanguageCode } from "./voices.ts";
 import { resetTimeout } from "../voice/manager.ts";
-import { isPremiumUser, getUserVoicePreferences } from "../settings/db.ts";
+import { isPremiumUser, getUserTTSProfile } from "../settings/db.ts";
 
 export interface QueueItem {
   payloads: TTSPayload[];
@@ -26,6 +27,8 @@ export interface QueueItem {
   originalText: string;
   isEncoreMode: boolean;
   voiceName?: string | null;
+  /** Audio tuning for Premium provider (speed/pitch) */
+  tuning?: AudioTuningOptions;
 }
 
 interface GuildPlayerState {
@@ -70,7 +73,7 @@ function handlePlayerIdle(guildId: string): void {
     currentItem.currentIndex++;
     const nextPayload = currentItem.payloads[currentItem.currentIndex];
     if (nextPayload) {
-      playPayload(guildId, nextPayload);
+      playPayload(guildId, nextPayload, currentItem.tuning);
     }
     return;
   }
@@ -86,11 +89,13 @@ async function playPayloadPremium(
   guildId: string,
   payload: TTSPayload,
   state: GuildPlayerState,
+  tuning?: AudioTuningOptions,
 ): Promise<boolean> {
   const audioBuffer = await synthesizeWavenet(
     payload.text,
     payload.language,
     payload.voiceName,
+    tuning,
   );
   if (!audioBuffer) {
     return false;
@@ -146,12 +151,13 @@ async function playPayloadBasic(
 async function playPayload(
   guildId: string,
   payload: TTSPayload,
+  tuning?: AudioTuningOptions,
 ): Promise<void> {
   const state = guildPlayers.get(guildId);
   if (!state) return;
   try {
     if (payload.provider === "premium") {
-      const success = await playPayloadPremium(guildId, payload, state);
+      const success = await playPayloadPremium(guildId, payload, state, tuning);
       if (!success) {
         ttsLogger.warn("Premium (Wavenet) failed, falling back to basic TTS");
         await playPayloadBasic(guildId, payload, state);
@@ -172,7 +178,7 @@ function playItem(guildId: string, item: QueueItem): void {
   item.currentIndex = 0;
   const firstPayload = item.payloads[0];
   if (firstPayload) {
-    playPayload(guildId, firstPayload);
+    playPayload(guildId, firstPayload, item.tuning);
   }
 }
 
@@ -202,9 +208,9 @@ export function queueTTS(
 ): QueueTTSResult {
   const state = getOrCreateState(guildId);
   const isUserPremium = isPremiumUser(userId);
-  const preferences = getUserVoicePreferences(userId);
-  const voiceName = overrideVoiceName ?? preferences.voiceName;
-  const requestedProvider = preferences.provider;
+  const profile = getUserTTSProfile(userId);
+  const voiceName = overrideVoiceName ?? profile.voiceId;
+  const requestedProvider = profile.provider;
   const usePremium =
     isUserPremium &&
     isWavenetAvailable() &&
@@ -213,7 +219,9 @@ export function queueTTS(
   const effectiveVoiceName = usePremium ? voiceName : null;
   const providerLabel = usePremium ? "Google Wavenet" : "Google Translate";
   const modelLabel = effectiveVoiceName || "N/A";
-  const payloads = createTTSPayloads(text, language, provider, effectiveVoiceName);
+  
+  // Pass speed to createTTSPayloads (used for Basic provider slow mode detection)
+  const payloads = createTTSPayloads(text, language, provider, effectiveVoiceName, profile.speed);
   if (payloads.length === 0) {
     return {
       queued: false,
@@ -224,6 +232,12 @@ export function queueTTS(
       modelLabel: "N/A",
     };
   }
+  
+  // Build tuning options for Premium provider
+  const tuning: AudioTuningOptions | undefined = usePremium
+    ? { speakingRate: profile.speed, pitch: profile.pitch }
+    : undefined;
+  
   const item: QueueItem = {
     payloads,
     currentIndex: 0,
@@ -231,6 +245,7 @@ export function queueTTS(
     originalText: text,
     isEncoreMode: usePremium,
     voiceName: effectiveVoiceName,
+    tuning,
   };
   if (!state.isPlaying && !state.currentItem) {
     playItem(guildId, item);

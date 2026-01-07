@@ -40,6 +40,11 @@ export const SCHEMA = {
   /**
    * Table: user_preferences
    * Purpose: Store user customization (UI locale + TTS settings)
+   * 
+   * Note on tts_speed constraints:
+   * - For Basic provider: 0.25 = "Slow Mode", 1.0 = "Normal"
+   * - For Premium provider: 0.25 to 4.0 range (Google Cloud limits)
+   * - 0.25 serves as the "magic number" for Basic slow mode detection
    */
   user_preferences: `
     CREATE TABLE IF NOT EXISTS user_preferences (

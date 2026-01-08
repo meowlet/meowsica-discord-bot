@@ -42,10 +42,15 @@ export const profile: Command = {
     const ttsProfile = getUserTTSProfile(userId);
     const premiumStatus = getPremiumStatus(userId);
 
-    // Determine Status Text (only icon here if Encore)
-    const statusText = isEncore
-      ? `${t(locale, "commands.profile.status.encore")} ${ICONS.ENCORE}`
-      : t(locale, "commands.profile.status.free");
+    // Determine Status Text
+    let statusText: string;
+    if (premiumStatus.isFreeTrial) {
+      statusText = t(locale, "commands.profile.status.freeTrial");
+    } else if (isEncore) {
+      statusText = `${t(locale, "commands.profile.status.encore")} ${ICONS.ENCORE}`;
+    } else {
+      statusText = t(locale, "commands.profile.status.free");
+    }
 
     // Determine Provider Text
     const providerText =
@@ -64,6 +69,8 @@ export const profile: Command = {
     let expiresText: string;
     if (!isEncore) {
       expiresText = "N/A";
+    } else if (premiumStatus.isFreeTrial) {
+      expiresText = "01/02/2026"; // Free trial end date
     } else if (premiumStatus.isLifetime) {
       expiresText = t(locale, "commands.profile.expires.lifetime");
     } else if (premiumStatus.expiresAt) {
@@ -124,6 +131,11 @@ export const profile: Command = {
         value: t(locale, "commands.profile.usage.notApplicable"),
         inline: false,
       });
+    }
+
+    // Add hint for free trial users
+    if (premiumStatus.isFreeTrial) {
+      embed.setFooter({ text: t(locale, "commands.profile.freeTrialHint") });
     }
 
     await interaction.reply({ embeds: [embed] });

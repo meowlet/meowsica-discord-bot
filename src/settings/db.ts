@@ -172,10 +172,16 @@ const upsertServerVoice = db.prepare(`
 // Subscription Functions
 // ============================================================================
 
+import { isFreeTrial } from "../config/index.ts";
+
 /**
  * Check if a user has active premium status
+ * Returns true during free trial period for all users
  */
 export function isPremiumUser(userId: string): boolean {
+  // Global free trial - everyone gets premium
+  if (isFreeTrial()) return true;
+
   const row = getSubscription.get(userId);
   if (!row || row.tier === "free") return false;
   if (row.expires_at === null) return true; // Lifetime
@@ -184,9 +190,23 @@ export function isPremiumUser(userId: string): boolean {
 
 /**
  * Get detailed premium status for a user
+ * Includes free trial status if active
  */
-export function getPremiumStatus(userId: string): PremiumStatus {
+export function getPremiumStatus(userId: string): PremiumStatus & { isFreeTrial?: boolean } {
+  const freeTrial = isFreeTrial();
   const row = getSubscription.get(userId);
+
+  // During free trial - return premium status for everyone
+  if (freeTrial && (!row || row.tier === "free")) {
+    return {
+      isPremium: true,
+      tier: "encore",
+      expiresAt: null,
+      isExpired: false,
+      isLifetime: false,
+      isFreeTrial: true,
+    };
+  }
 
   if (!row || row.tier === "free") {
     return {

@@ -318,6 +318,7 @@ export default {
       status: {
         encore: "Encore",
         free: "Free",
+        freeTrial: "Dùng thử Encore",
       },
       fields: {
         status: "Trạng thái",
@@ -335,7 +336,8 @@ export default {
       usage: {
         notApplicable: "N/A (Dùng Free)",
       },
-      quotaExceeded: "⚠️ Hết quota Encore. Bạn đã dùng {used}/{limit} ký tự. Đợi tháng sau hoặc dùng Basic nhé.",
+      freeTrialHint: "Bot đang mở dùng thử Encore miễn phí đến 01/02/2026!",
+      quotaExceeded: "Hết quota Encore. Bạn đã dùng {used}/{limit} ký tự. Đợi tháng sau hoặc dùng tạm Basic nhé.",
     },
   },
 

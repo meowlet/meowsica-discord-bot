@@ -182,7 +182,7 @@ export async function handleLanguageCloseButton(
   } catch (error) {
     // If we can't delete, just acknowledge
     await interaction.reply({
-      content: "OK",
+      content: t(locale, "common.ok"),
       flags: MessageFlags.Ephemeral,
     });
   }
@@ -295,6 +295,7 @@ export async function handleLanguageComponent(
   interaction: ButtonInteraction | StringSelectMenuInteraction,
 ): Promise<void> {
   const customId = interaction.customId;
+  const locale = getUserLocale(interaction.user.id);
 
   try {
     // Button interactions
@@ -320,7 +321,7 @@ export async function handleLanguageComponent(
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
-          content: "An error occurred. Please try again.",
+          content: t(locale, "common.errorRetry"),
           flags: MessageFlags.Ephemeral,
         });
       }

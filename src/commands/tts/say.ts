@@ -6,6 +6,8 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import { getLocale } from "../../settings/db.ts";
 import {
   joinChannel,
@@ -22,16 +24,16 @@ const MAX_MESSAGE_LENGTH = 500;
 export const say: Command = {
   data: new SlashCommandBuilder()
     .setName("say")
-    .setDescription("Say something using text-to-speech")
+    .setDescription(en.commands.say.description)
     .setDescriptionLocalizations({
-      vi: "Doc van ban bang giong noi",
+      vi: vi.commands.say.description,
     })
     .addStringOption((option) =>
       option
         .setName("message")
-        .setDescription("The message to speak")
+        .setDescription(en.commands.say.messageOptionDesc)
         .setDescriptionLocalizations({
-          vi: "Noi dung can doc",
+          vi: vi.commands.say.messageOptionDesc,
         })
         .setRequired(true)
         .setMaxLength(MAX_MESSAGE_LENGTH),

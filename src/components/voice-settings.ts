@@ -215,10 +215,14 @@ async function buildVariantSelect(
       if (voices.length > 0) {
         options = voices.slice(0, 25).map((voice) => {
           const variant = voice.value.split("-").pop() || "";
-          const genderLabel = voice.gender === "FEMALE" ? "Female" : voice.gender === "MALE" ? "Male" : "Neutral";
+          const genderLabel = voice.gender === "FEMALE" 
+            ? t(locale, "common.gender.female") 
+            : voice.gender === "MALE" 
+              ? t(locale, "common.gender.male") 
+              : t(locale, "common.gender.neutral");
           return new StringSelectMenuOptionBuilder()
             .setLabel(`Wavenet ${variant}`)
-            .setDescription(`${genderLabel} voice`)
+            .setDescription(genderLabel)
             .setValue(voice.value)
             .setDefault(voice.value === currentVoiceId);
         });
@@ -942,6 +946,7 @@ export async function handleVoiceComponent(
   interaction: ButtonInteraction | StringSelectMenuInteraction,
 ): Promise<void> {
   const customId = interaction.customId;
+  const locale = getUserLocale(interaction.user.id);
 
   try {
     // Button interactions
@@ -973,7 +978,7 @@ export async function handleVoiceComponent(
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
-          content: "An error occurred. Please try again.",
+          content: t(locale, "common.errorRetry"),
           flags: MessageFlags.Ephemeral,
         });
       }

@@ -5,6 +5,8 @@ import {
 } from "discord.js";
 import { commands } from "../commands.ts";
 import { commandLogger } from "../utils/logger.ts";
+import { t } from "../i18n/index.ts";
+import { getLocale } from "../settings/db.ts";
 
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
@@ -12,11 +14,12 @@ export async function handleCommand(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const command = commandMap.get(interaction.commandName);
+  const locale = getLocale(interaction);
 
   if (!command) {
     commandLogger.warn(`Command not found: ${interaction.commandName}`);
     await interaction.reply({
-      content: "Unknown command!",
+      content: t(locale, "common.unknownCommand"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -27,7 +30,7 @@ export async function handleCommand(
   } catch (error) {
     commandLogger.error(`Error executing /${interaction.commandName}:`, error);
 
-    const errorMessage = "There was an error executing this command!";
+    const errorMessage = t(locale, "common.commandError");
 
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({

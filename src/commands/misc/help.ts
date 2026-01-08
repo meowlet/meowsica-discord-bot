@@ -2,6 +2,8 @@ import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { commands } from "../../commands.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import { getLocale } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 
@@ -42,9 +44,9 @@ const getCommandInfo = (cmd: Command, locale: string): CommandInfo => {
 export const help: Command = {
   data: new SlashCommandBuilder()
     .setName("help")
-    .setDescription("Shows all available commands")
+    .setDescription(en.commands.help.description)
     .setDescriptionLocalizations({
-      vi: "Hiển thị tất cả các lệnh có sẵn",
+      vi: vi.commands.help.description,
     }),
 
   async execute(interaction) {

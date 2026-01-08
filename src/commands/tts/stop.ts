@@ -6,6 +6,8 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import { getLocale } from "../../settings/db.ts";
 import {
   leaveChannel,
@@ -18,9 +20,9 @@ import { clearQueue, cleanupPlayer } from "../../tts/player.ts";
 export const stop: Command = {
   data: new SlashCommandBuilder()
     .setName("stop")
-    .setDescription("Stop TTS and leave the voice channel")
+    .setDescription(en.commands.stop.description)
     .setDescriptionLocalizations({
-      vi: "Dừng TTS và rời kênh thoại",
+      vi: vi.commands.stop.description,
     }),
 
   async execute(interaction) {

@@ -17,6 +17,15 @@ import {
   isLanguageComponent,
   handleLanguageComponent,
 } from "../components/language-settings.ts";
+import { t, DEFAULT_LOCALE, type Locale } from "../i18n/index.ts";
+import { getLocale, getUserLocale as getDbUserLocale } from "../settings/db.ts";
+
+/**
+ * Get user's locale preference (for non-command interactions)
+ */
+function getUserLocale(userId: string): Locale {
+  return getDbUserLocale(userId) || DEFAULT_LOCALE;
+}
 
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
@@ -38,11 +47,12 @@ async function handleCommand(
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const command = commandMap.get(interaction.commandName);
+  const locale = getLocale(interaction);
 
   if (!command) {
     commandLogger.warn(`Command not found: ${interaction.commandName}`);
     await interaction.reply({
-      content: "Unknown command!",
+      content: t(locale, "common.unknownCommand"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -63,7 +73,7 @@ async function handleCommand(
       return; // Silently ignore - user already got a response or interaction expired
     }
 
-    const errorMessage = "There was an error executing this command!";
+    const errorMessage = t(locale, "common.commandError");
 
     try {
       if (interaction.replied || interaction.deferred) {
@@ -109,6 +119,7 @@ async function handleComponent(
   interaction: ButtonInteraction | StringSelectMenuInteraction,
 ): Promise<void> {
   const customId = interaction.customId;
+  const locale = getUserLocale(interaction.user.id);
 
   try {
     // Route voice settings components
@@ -130,7 +141,7 @@ async function handleComponent(
 
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
-        content: "An error occurred processing this interaction.",
+        content: t(locale, "common.errorRetry"),
         flags: MessageFlags.Ephemeral,
       });
     }

@@ -1,6 +1,8 @@
 import { EmbedBuilder, SlashCommandBuilder, MessageFlags } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import { getLocale } from "../../settings/db.ts";
 import { isConnected } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
@@ -10,9 +12,9 @@ import { getVoiceLanguageDisplay } from "../../tts/voices.ts";
 export const queue: Command = {
   data: new SlashCommandBuilder()
     .setName("queue")
-    .setDescription("Show the current TTS queue")
+    .setDescription(en.commands.queue.description)
     .setDescriptionLocalizations({
-      vi: "Xem hàng đợi TTS hiện tại",
+      vi: vi.commands.queue.description,
     }),
 
   async execute(interaction) {

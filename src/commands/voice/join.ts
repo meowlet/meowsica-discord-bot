@@ -6,6 +6,8 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import { getLocale } from "../../settings/db.ts";
 import { joinChannel } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
@@ -13,9 +15,9 @@ import { Colors } from "../../constants/index.ts";
 export const join: Command = {
   data: new SlashCommandBuilder()
     .setName("join")
-    .setDescription("Join your voice channel")
+    .setDescription(en.commands.join.description)
     .setDescriptionLocalizations({
-      vi: "Vào kênh thoại của bạn",
+      vi: vi.commands.join.description,
     }),
 
   async execute(interaction) {

@@ -15,6 +15,8 @@ import {
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import {
   getLocale,
   isPremiumUser,
@@ -154,9 +156,9 @@ export function buildDashboardButtons(locale: string): ActionRowBuilder<ButtonBu
 export const voice: Command = {
   data: new SlashCommandBuilder()
     .setName("voice")
-    .setDescription("Open your voice settings dashboard")
+    .setDescription(en.commands.voice.description)
     .setDescriptionLocalizations({
-      vi: "Mở bảng cài đặt giọng nói của bạn",
+      vi: vi.commands.voice.description,
     }),
 
   async execute(interaction) {

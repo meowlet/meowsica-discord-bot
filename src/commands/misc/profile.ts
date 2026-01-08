@@ -8,6 +8,8 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import {
   getLocale,
   isPremiumUser,
@@ -21,9 +23,9 @@ import { reconcilePremiumSettings } from "./voice.ts";
 export const profile: Command = {
   data: new SlashCommandBuilder()
     .setName("profile")
-    .setDescription("View your TTS profile")
+    .setDescription(en.commands.profile.description)
     .setDescriptionLocalizations({
-      vi: "Xem hồ sơ TTS của bạn",
+      vi: vi.commands.profile.description,
     }),
 
   async execute(interaction) {

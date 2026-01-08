@@ -1,6 +1,8 @@
 import { EmbedBuilder, SlashCommandBuilder, MessageFlags } from "discord.js";
 import type { Command } from "../../types/command.ts";
 import { t } from "../../i18n/index.ts";
+import en from "../../i18n/locales/en.ts";
+import vi from "../../i18n/locales/vi.ts";
 import { getLocale } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 import { getConfig } from "../../config/index.ts";
@@ -15,32 +17,32 @@ const ENCORE_EMOJI = "✨";
 export const encoreAdmin: Command = {
   data: new SlashCommandBuilder()
     .setName("encore-admin")
-    .setDescription("Manage Meowsica Encore subscriptions")
+    .setDescription(en.commands.encoreAdmin.description)
     .setDescriptionLocalizations({
-      vi: "Quan ly goi Meowsica Encore",
+      vi: vi.commands.encoreAdmin.description,
     })
     .addSubcommand((subcommand) =>
       subcommand
         .setName("grant")
-        .setDescription("Grant Encore to a user")
+        .setDescription(en.commands.encoreAdmin.grant.description)
         .setDescriptionLocalizations({
-          vi: "Cap Encore cho nguoi dung",
+          vi: vi.commands.encoreAdmin.grant.description,
         })
         .addUserOption((option) =>
           option
             .setName("user")
-            .setDescription("The user to grant Encore to")
+            .setDescription(en.commands.encoreAdmin.grant.userOptionDesc)
             .setDescriptionLocalizations({
-              vi: "Nguoi dung duoc cap Encore",
+              vi: vi.commands.encoreAdmin.grant.userOptionDesc,
             })
             .setRequired(true),
         )
         .addIntegerOption((option) =>
           option
             .setName("days")
-            .setDescription("Number of days (leave empty for lifetime)")
+            .setDescription(en.commands.encoreAdmin.grant.daysOptionDesc)
             .setDescriptionLocalizations({
-              vi: "So ngay (de trong cho vinh vien)",
+              vi: vi.commands.encoreAdmin.grant.daysOptionDesc,
             })
             .setRequired(false)
             .setMinValue(1)
@@ -50,16 +52,16 @@ export const encoreAdmin: Command = {
     .addSubcommand((subcommand) =>
       subcommand
         .setName("revoke")
-        .setDescription("Revoke Encore from a user")
+        .setDescription(en.commands.encoreAdmin.revoke.description)
         .setDescriptionLocalizations({
-          vi: "Thu hoi Encore tu nguoi dung",
+          vi: vi.commands.encoreAdmin.revoke.description,
         })
         .addUserOption((option) =>
           option
             .setName("user")
-            .setDescription("The user to revoke Encore from")
+            .setDescription(en.commands.encoreAdmin.revoke.userOptionDesc)
             .setDescriptionLocalizations({
-              vi: "Nguoi dung bi thu hoi Encore",
+              vi: vi.commands.encoreAdmin.revoke.userOptionDesc,
             })
             .setRequired(true),
         ),
@@ -67,16 +69,16 @@ export const encoreAdmin: Command = {
     .addSubcommand((subcommand) =>
       subcommand
         .setName("check")
-        .setDescription("Check a user's Encore status")
+        .setDescription(en.commands.encoreAdmin.check.description)
         .setDescriptionLocalizations({
-          vi: "Kiem tra trang thai Encore cua nguoi dung",
+          vi: vi.commands.encoreAdmin.check.description,
         })
         .addUserOption((option) =>
           option
             .setName("user")
-            .setDescription("The user to check")
+            .setDescription(en.commands.encoreAdmin.check.userOptionDesc)
             .setDescriptionLocalizations({
-              vi: "Nguoi dung can kiem tra",
+              vi: vi.commands.encoreAdmin.check.userOptionDesc,
             })
             .setRequired(true),
         ),

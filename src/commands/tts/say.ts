@@ -15,9 +15,10 @@ import {
   getConnectionChannelId,
 } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
-import { queueTTS } from "../../tts/player.ts";
+import { queueTTS, QuotaExceededError } from "../../tts/player.ts";
 import { validateTTSText } from "../../tts/provider.ts";
 import { getTTSLanguage } from "../../settings/tts.ts";
+import { MONTHLY_QUOTA_LIMIT } from "../../services/UsageService.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -111,6 +112,20 @@ export const say: Command = {
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
+      // Handle quota exceeded error
+      if (error instanceof QuotaExceededError) {
+        const usedFormatted = error.charsUsed.toLocaleString();
+        const limitFormatted = MONTHLY_QUOTA_LIMIT.toLocaleString();
+        const quotaMessage = t(locale, "commands.profile.quotaExceeded")
+          .replace("{used}", usedFormatted)
+          .replace("{limit}", limitFormatted);
+        
+        await interaction.editReply({
+          content: quotaMessage,
+        });
+        return;
+      }
+      
       const embed = new EmbedBuilder()
         .setTitle(t(locale, "common.error"))
         .setDescription(t(locale, "commands.say.joinFailed"))

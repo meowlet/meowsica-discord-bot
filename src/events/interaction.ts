@@ -19,6 +19,11 @@ import {
 } from "../components/language-settings.ts";
 import { t, DEFAULT_LOCALE, type Locale } from "../i18n/index.ts";
 import { getLocale, getUserLocale as getDbUserLocale } from "../settings/db.ts";
+import {
+  logCommand,
+  createLogEntryFromInteraction,
+  type CommandLogStatus,
+} from "../services/LoggerService.ts";
 
 /**
  * Get user's locale preference (for non-command interactions)
@@ -48,9 +53,15 @@ async function handleCommand(
 ): Promise<void> {
   const command = commandMap.get(interaction.commandName);
   const locale = getLocale(interaction);
+  let logStatus: CommandLogStatus = "success";
 
   if (!command) {
     commandLogger.warn(`Command not found: ${interaction.commandName}`);
+    logStatus = "error";
+    
+    // Log unknown command (fire-and-forget)
+    logCommand(createLogEntryFromInteraction(interaction, logStatus));
+    
     await interaction.reply({
       content: t(locale, "common.unknownCommand"),
       flags: MessageFlags.Ephemeral,
@@ -61,8 +72,20 @@ async function handleCommand(
   try {
     commandLogger.info(`/${interaction.commandName} by ${interaction.user.tag}`);
     await command.execute(interaction);
+    
+    // Log successful command (fire-and-forget)
+    logCommand(createLogEntryFromInteraction(interaction, "success"));
   } catch (error) {
     commandLogger.error(`Error executing /${interaction.commandName}:`, error);
+    
+    // Determine log status based on error type
+    logStatus = "error";
+    if (error instanceof Error && error.name === "QuotaExceededError") {
+      logStatus = "quota_limit";
+    }
+    
+    // Log failed command (fire-and-forget)
+    logCommand(createLogEntryFromInteraction(interaction, logStatus));
 
     // Don't try to respond if it's already an interaction acknowledgment error
     const isAcknowledgeError = error instanceof Error && 

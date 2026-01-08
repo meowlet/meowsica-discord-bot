@@ -2,8 +2,22 @@ import type { VoiceLanguageCode } from "./voices.ts";
 import { getConfig } from "../config/index.ts";
 import { ttsLogger } from "../utils/logger.ts";
 import { extractLanguageCode } from "../services/GoogleTTSService.ts";
+import {
+  getCacheService,
+  buildCacheKey,
+  type CacheKey,
+  ENCORE_AUDIO_EXT,
+  BASIC_AUDIO_EXT,
+} from "../services/CacheService.ts";
+import {
+  getUsageService,
+  QuotaExceededError,
+} from "../services/UsageService.ts";
 
 export type TTSProviderType = "basic" | "premium";
+
+/** Re-export QuotaExceededError for consumers */
+export { QuotaExceededError } from "../services/UsageService.ts";
 
 export interface TTSPayload {
   url: string;
@@ -16,11 +30,13 @@ export interface TTSPayload {
 export interface PremiumAudioResult {
   audioContent: Buffer;
   provider: "premium";
+  fromCache: boolean;
 }
 
 export interface BasicAudioResult {
   url: string;
   provider: "basic";
+  fromCache: boolean;
 }
 
 export type AudioResult = PremiumAudioResult | BasicAudioResult;
@@ -48,6 +64,12 @@ const MAX_TEXT_LENGTH = 200;
 const GOOGLE_TTS_BASE = "https://translate.google.com/translate_tts";
 const GOOGLE_CLOUD_TTS_BASE =
   "https://texttospeech.googleapis.com/v1/text:synthesize";
+
+/**
+ * Audio encoding for Encore (Google Cloud TTS)
+ * OGG_OPUS provides better quality at smaller file sizes
+ */
+const ENCORE_AUDIO_ENCODING = "OGG_OPUS" as const;
 
 const WAVENET_VOICE_MAP: Record<string, string> = {
   en: "en-US-Wavenet-D",
@@ -162,7 +184,7 @@ export async function synthesizeWavenet(
       name: voiceName,
     },
     audioConfig: {
-      audioEncoding: "MP3",
+      audioEncoding: ENCORE_AUDIO_ENCODING,
       speakingRate,
       pitch,
     },
@@ -186,6 +208,81 @@ export async function synthesizeWavenet(
   } catch (error) {
     ttsLogger.error("Failed to synthesize Wavenet TTS:", error);
     return null;
+  }
+}
+
+/**
+ * Synthesize Wavenet audio with caching and quota management
+ * 
+ * Flow:
+ * 1. Check cache - if hit, return (free, no quota deduction)
+ * 2. Check user quota - throw QuotaExceededError if exceeded
+ * 3. Generate audio via Google Cloud TTS (OGG_OPUS)
+ * 4. Cache the result
+ * 5. Increment user quota
+ * 
+ * @param text - Text to synthesize
+ * @param language - Language code
+ * @param userId - User ID for quota tracking
+ * @param specificVoiceName - Optional specific voice ID
+ * @param tuning - Optional audio tuning (speed/pitch)
+ * @returns Object with buffer and fromCache flag, or null on failure
+ * @throws QuotaExceededError if user has exceeded monthly quota
+ */
+export async function synthesizeWavenetCached(
+  text: string,
+  language: VoiceLanguageCode,
+  userId: string,
+  specificVoiceName?: string | null,
+  tuning?: AudioTuningOptions,
+): Promise<{ buffer: Buffer; fromCache: boolean } | null> {
+  const speed = tuning?.speakingRate ?? 1.0;
+  const pitch = tuning?.pitch ?? 0.0;
+  const voiceName = specificVoiceName || getWavenetVoice(language);
+  
+  // Build cache key
+  const cacheKey = buildCacheKey(text, voiceName, speed, pitch, "premium");
+  
+  try {
+    const cacheService = getCacheService();
+    const usageService = getUsageService();
+    
+    // Check quota before anything (applies to both cache hit and miss)
+    usageService.checkQuota(userId, text.length);
+    
+    // Check cache first
+    const cachedBuffer = await cacheService.get(cacheKey);
+    if (cachedBuffer) {
+      // Increment usage even on cache hit
+      usageService.incrementUsage(userId, text.length);
+      ttsLogger.debug(`Cache hit for premium synthesis (${text.length} chars)`);
+      return { buffer: cachedBuffer, fromCache: true };
+    }
+    
+    // Cache miss - generate new audio
+    const newBuffer = await synthesizeWavenet(text, language, specificVoiceName, tuning);
+    if (!newBuffer) {
+      return null;
+    }
+    
+    // Cache the result
+    await cacheService.set(cacheKey, newBuffer);
+    
+    // Increment quota on successful generation
+    usageService.incrementUsage(userId, text.length);
+    
+    ttsLogger.debug(`Generated and cached premium audio (${text.length} chars)`);
+    return { buffer: newBuffer, fromCache: false };
+  } catch (error) {
+    // Re-throw quota errors for handling upstream
+    if (error instanceof QuotaExceededError) {
+      throw error;
+    }
+    
+    // For other errors (cache service not initialized, etc.), fall back to direct synthesis
+    ttsLogger.warn("Cache/quota services unavailable, using direct synthesis");
+    const buffer = await synthesizeWavenet(text, language, specificVoiceName, tuning);
+    return buffer ? { buffer, fromCache: false } : null;
   }
 }
 

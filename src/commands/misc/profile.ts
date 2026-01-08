@@ -3,6 +3,7 @@
  *
  * Displays a minimalist user profile showing TTS settings and Encore status.
  * Design: Color-coded (Gold for Encore, Blurple for Free), no generic icons.
+ * Includes Monthly Encore Usage with progress bar.
  */
 
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
@@ -19,6 +20,7 @@ import {
 import { Colors } from "../../constants/index.ts";
 import { ICONS } from "../../constants/icons.ts";
 import { reconcilePremiumSettings } from "./voice.ts";
+import { getUsageService } from "../../services/UsageService.ts";
 
 export const profile: Command = {
   data: new SlashCommandBuilder()
@@ -40,10 +42,15 @@ export const profile: Command = {
     const ttsProfile = getUserTTSProfile(userId);
     const premiumStatus = getPremiumStatus(userId);
 
-    // Determine Status Text (only icon here if Encore)
-    const statusText = isEncore
-      ? `${t(locale, "commands.profile.status.encore")} ${ICONS.ENCORE}`
-      : t(locale, "commands.profile.status.free");
+    // Determine Status Text
+    let statusText: string;
+    if (premiumStatus.isFreeTrial) {
+      statusText = t(locale, "commands.profile.status.freeTrial");
+    } else if (isEncore) {
+      statusText = `${t(locale, "commands.profile.status.encore")} ${ICONS.ENCORE}`;
+    } else {
+      statusText = t(locale, "commands.profile.status.free");
+    }
 
     // Determine Provider Text
     const providerText =
@@ -62,6 +69,8 @@ export const profile: Command = {
     let expiresText: string;
     if (!isEncore) {
       expiresText = "N/A";
+    } else if (premiumStatus.isFreeTrial) {
+      expiresText = "01/02/2026"; // Free trial end date
     } else if (premiumStatus.isLifetime) {
       expiresText = t(locale, "commands.profile.expires.lifetime");
     } else if (premiumStatus.expiresAt) {
@@ -102,6 +111,32 @@ export const profile: Command = {
           inline: false,
         },
       );
+
+    // Add Usage field for Encore users
+    if (isEncore) {
+      try {
+        const usageService = getUsageService();
+        const usageText = usageService.getFormattedUsage(userId);
+        embed.addFields({
+          name: t(locale, "commands.profile.fields.usage"),
+          value: usageText,
+          inline: false,
+        });
+      } catch {
+        // UsageService not initialized yet - skip usage field
+      }
+    } else {
+      embed.addFields({
+        name: t(locale, "commands.profile.fields.usage"),
+        value: t(locale, "commands.profile.usage.notApplicable"),
+        inline: false,
+      });
+    }
+
+    // Add hint for free trial users
+    if (premiumStatus.isFreeTrial) {
+      embed.setFooter({ text: t(locale, "commands.profile.freeTrialHint") });
+    }
 
     await interaction.reply({ embeds: [embed] });
   },

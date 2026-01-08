@@ -16,6 +16,7 @@ import {
 } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 import { ICONS } from "../../constants/icons.ts";
+import { reconcilePremiumSettings } from "./voice.ts";
 
 export const profile: Command = {
   data: new SlashCommandBuilder()
@@ -28,6 +29,9 @@ export const profile: Command = {
   async execute(interaction) {
     const locale = getLocale(interaction);
     const userId = interaction.user.id;
+
+    // Auto-downgrade check: reconcile premium settings with subscription status
+    reconcilePremiumSettings(userId);
 
     // Fetch user data
     const isEncore = isPremiumUser(userId);

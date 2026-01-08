@@ -78,7 +78,17 @@ function handlePlayerIdle(guildId: string): void {
     currentItem.currentIndex++;
     const nextPayload = currentItem.payloads[currentItem.currentIndex];
     if (nextPayload) {
-      playPayload(guildId, nextPayload, currentItem.userId, currentItem.tuning);
+      playPayload(guildId, nextPayload, currentItem.userId, currentItem.tuning).catch((error) => {
+        if (error instanceof QuotaExceededError) {
+          ttsLogger.warn(`Quota exceeded for user ${currentItem.userId} during playback: ${error.message}`);
+        } else {
+          ttsLogger.error(`Error playing payload in guild ${guildId}:`, error);
+        }
+        // Clear current item and continue with queue
+        state.currentItem = null;
+        state.isPlaying = false;
+        handlePlayerIdle(guildId);
+      });
     }
     return;
   }
@@ -198,7 +208,17 @@ function playItem(guildId: string, item: QueueItem): void {
   item.currentIndex = 0;
   const firstPayload = item.payloads[0];
   if (firstPayload) {
-    playPayload(guildId, firstPayload, item.userId, item.tuning);
+    playPayload(guildId, firstPayload, item.userId, item.tuning).catch((error) => {
+      if (error instanceof QuotaExceededError) {
+        ttsLogger.warn(`Quota exceeded for user ${item.userId} during playback: ${error.message}`);
+      } else {
+        ttsLogger.error(`Error playing payload in guild ${guildId}:`, error);
+      }
+      // Clear current item and continue with queue
+      state.currentItem = null;
+      state.isPlaying = false;
+      handlePlayerIdle(guildId);
+    });
   }
 }
 

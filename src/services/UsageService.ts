@@ -127,6 +127,7 @@ export class UsageService {
   private getUsageStmt: ReturnType<Database["prepare"]>;
   private upsertUsageStmt: ReturnType<Database["prepare"]>;
   private incrementUsageStmt: ReturnType<Database["prepare"]>;
+  private resetUsageStmt: ReturnType<Database["prepare"]>;
 
   constructor(db: Database) {
     this.db = db;
@@ -167,6 +168,16 @@ export class UsageService {
           THEN excluded.chars_used 
           ELSE user_usage.chars_used + excluded.chars_used 
         END,
+        month_year = excluded.month_year,
+        updated_at = unixepoch()
+    `);
+
+    // Reset statement - always sets chars_used to the provided value (for admin reset)
+    this.resetUsageStmt = db.prepare(`
+      INSERT INTO user_usage (user_id, chars_used, month_year, updated_at)
+      VALUES (?, ?, ?, unixepoch())
+      ON CONFLICT(user_id) DO UPDATE SET 
+        chars_used = excluded.chars_used,
         month_year = excluded.month_year,
         updated_at = unixepoch()
     `);
@@ -231,10 +242,11 @@ export class UsageService {
 
   /**
    * Reset usage for a user (admin function)
+   * Uses dedicated reset statement that sets chars_used to 0 directly
    */
   resetUsage(userId: string): void {
     const currentMonth = getCurrentMonthYear();
-    this.upsertUsageStmt.run(userId, 0, currentMonth);
+    this.resetUsageStmt.run(userId, 0, currentMonth);
   }
 
   /**

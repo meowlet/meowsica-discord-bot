@@ -11,7 +11,9 @@ import { ttsLogger } from "../utils/logger.ts";
 import {
   createTTSPayloads,
   synthesizeWavenet,
+  synthesizeWavenetCached,
   isWavenetAvailable,
+  QuotaExceededError,
   type TTSPayload,
   type TTSProviderType,
   type AudioTuningOptions,
@@ -30,6 +32,9 @@ export interface QueueItem {
   /** Audio tuning for Premium provider (speed/pitch) */
   tuning?: AudioTuningOptions;
 }
+
+/** Re-export QuotaExceededError for consumers */
+export { QuotaExceededError } from "./provider.ts";
 
 interface GuildPlayerState {
   player: AudioPlayer;
@@ -73,7 +78,7 @@ function handlePlayerIdle(guildId: string): void {
     currentItem.currentIndex++;
     const nextPayload = currentItem.payloads[currentItem.currentIndex];
     if (nextPayload) {
-      playPayload(guildId, nextPayload, currentItem.tuning);
+      playPayload(guildId, nextPayload, currentItem.userId, currentItem.tuning);
     }
     return;
   }
@@ -89,17 +94,27 @@ async function playPayloadPremium(
   guildId: string,
   payload: TTSPayload,
   state: GuildPlayerState,
+  userId: string,
   tuning?: AudioTuningOptions,
 ): Promise<boolean> {
-  const audioBuffer = await synthesizeWavenet(
+  // Use cached synthesis with quota management
+  const result = await synthesizeWavenetCached(
     payload.text,
     payload.language,
+    userId,
     payload.voiceName,
     tuning,
   );
-  if (!audioBuffer) {
+  
+  if (!result) {
     return false;
   }
+  
+  const { buffer: audioBuffer, fromCache } = result;
+  if (fromCache) {
+    ttsLogger.debug(`[Player] Using cached audio for guild ${guildId}`);
+  }
+  
   const connection = getVoiceConnection(guildId);
   if (!connection) {
     ttsLogger.warn(`No voice connection for guild ${guildId}`);
@@ -151,13 +166,14 @@ async function playPayloadBasic(
 async function playPayload(
   guildId: string,
   payload: TTSPayload,
+  userId: string,
   tuning?: AudioTuningOptions,
 ): Promise<void> {
   const state = guildPlayers.get(guildId);
   if (!state) return;
   try {
     if (payload.provider === "premium") {
-      const success = await playPayloadPremium(guildId, payload, state, tuning);
+      const success = await playPayloadPremium(guildId, payload, state, userId, tuning);
       if (!success) {
         ttsLogger.warn("Premium (Wavenet) failed, falling back to basic TTS");
         await playPayloadBasic(guildId, payload, state);
@@ -166,6 +182,10 @@ async function playPayload(
       await playPayloadBasic(guildId, payload, state);
     }
   } catch (error) {
+    // Re-throw QuotaExceededError to be handled at the queue level
+    if (error instanceof QuotaExceededError) {
+      throw error;
+    }
     ttsLogger.error(`Failed to play TTS payload:`, error);
     handlePlayerIdle(guildId);
   }
@@ -178,7 +198,7 @@ function playItem(guildId: string, item: QueueItem): void {
   item.currentIndex = 0;
   const firstPayload = item.payloads[0];
   if (firstPayload) {
-    playPayload(guildId, firstPayload, item.tuning);
+    playPayload(guildId, firstPayload, item.userId, item.tuning);
   }
 }
 

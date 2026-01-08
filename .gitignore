@@ -37,7 +37,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 *.db
 *.db-shm
 *.db-wal
-settings.db
+
+# Audio cache
+cache/
 
 
 CONTEXT_DUMP.md

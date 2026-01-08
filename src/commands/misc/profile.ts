@@ -3,6 +3,7 @@
  *
  * Displays a minimalist user profile showing TTS settings and Encore status.
  * Design: Color-coded (Gold for Encore, Blurple for Free), no generic icons.
+ * Includes Monthly Encore Usage with progress bar.
  */
 
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
@@ -19,6 +20,7 @@ import {
 import { Colors } from "../../constants/index.ts";
 import { ICONS } from "../../constants/icons.ts";
 import { reconcilePremiumSettings } from "./voice.ts";
+import { getUsageService } from "../../services/UsageService.ts";
 
 export const profile: Command = {
   data: new SlashCommandBuilder()
@@ -102,6 +104,27 @@ export const profile: Command = {
           inline: false,
         },
       );
+
+    // Add Usage field for Encore users
+    if (isEncore) {
+      try {
+        const usageService = getUsageService();
+        const usageText = usageService.getFormattedUsage(userId);
+        embed.addFields({
+          name: t(locale, "commands.profile.fields.usage"),
+          value: usageText,
+          inline: false,
+        });
+      } catch {
+        // UsageService not initialized yet - skip usage field
+      }
+    } else {
+      embed.addFields({
+        name: t(locale, "commands.profile.fields.usage"),
+        value: t(locale, "commands.profile.usage.notApplicable"),
+        inline: false,
+      });
+    }
 
     await interaction.reply({ embeds: [embed] });
   },

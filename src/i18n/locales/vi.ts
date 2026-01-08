@@ -324,6 +324,7 @@ export default {
         provider: "Nguồn giọng",
         model: "Model hiện tại",
         expires: "Ngày hết hạn Encore",
+        usage: "Lượng ký tự Encore tháng này",
       },
       model: {
         auto: "Tự động (Mặc định)",
@@ -331,6 +332,10 @@ export default {
       expires: {
         lifetime: "Trọn đời",
       },
+      usage: {
+        notApplicable: "N/A (Dùng Free)",
+      },
+      quotaExceeded: "⚠️ Hết quota Encore. Bạn đã dùng {used}/{limit} ký tự. Đợi tháng sau hoặc dùng Basic nhé.",
     },
   },
 

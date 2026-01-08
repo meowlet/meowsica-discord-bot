@@ -29,6 +29,14 @@ const db = new Database("settings.db");
 // Run migration/initialization
 initializeSchema(db);
 
+/**
+ * Get the main database instance
+ * Used by services that need direct DB access (e.g., UsageService)
+ */
+export function getDatabase(): Database {
+  return db;
+}
+
 // ============================================================================
 // Type Definitions
 // ============================================================================

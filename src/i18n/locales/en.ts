@@ -321,6 +321,7 @@ export default {
         provider: "Provider",
         model: "Current Model",
         expires: "Expires",
+        usage: "Monthly Encore Usage",
       },
       model: {
         auto: "Auto (Standard)",
@@ -328,6 +329,10 @@ export default {
       expires: {
         lifetime: "Lifetime",
       },
+      usage: {
+        notApplicable: "N/A (Free Plan)",
+      },
+      quotaExceeded: "⚠️ Encore Quota Exceeded. You have used {used}/{limit} characters. Please wait until next month or use Basic.",
     },
   },
 

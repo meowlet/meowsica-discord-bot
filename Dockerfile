@@ -26,7 +26,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy source code
 COPY package.json ./
 COPY src ./src
-COPY data ./data
+
+# Create data directory (will be mounted as volume or created at runtime)
+RUN mkdir -p data cache
 
 # Create non-root user for security
 RUN chown -R bun:bun /app

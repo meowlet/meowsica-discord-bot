@@ -190,7 +190,7 @@ export default {
       check: {
         description: "Soi trạng thái Encore",
         userOption: "Người cần soi",
-        userOptionDesc: "Người dùng cần kiểm tra",
+        userOptionDesc: "Người cần soi",
         title: "Trạng thái Encore",
         user: "Người dùng",
         status: "Tình trạng",

@@ -55,7 +55,23 @@ export async function startBot(): Promise<BotClient> {
 }
 
 if (import.meta.main) {
-  startBot();
+  const client = await startBot();
+
+  // Graceful shutdown handler - ensures bot disconnects when process is killed
+  const shutdown = async (signal: string) => {
+    botLogger.info(`Received ${signal}, shutting down gracefully...`);
+    try {
+      client.destroy();
+      botLogger.info("Bot disconnected from Discord");
+    } catch (error) {
+      botLogger.error("Error during shutdown:", error);
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGHUP", () => shutdown("SIGHUP"));
 }
 
 export { BotClient };

@@ -217,7 +217,7 @@ export function queueTTS(
     requestedProvider === "premium";
   const provider: TTSProviderType = usePremium ? "premium" : "basic";
   const effectiveVoiceName = usePremium ? voiceName : null;
-  const providerLabel = usePremium ? "Google Wavenet" : "Google Translate";
+  const providerLabel = usePremium ? "Encore" : "Basic";
   const modelLabel = effectiveVoiceName || "N/A";
   
   // Pass speed to createTTSPayloads (used for Basic provider slow mode detection)

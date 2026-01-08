@@ -46,8 +46,8 @@ export const profile: Command = {
     // Determine Provider Text
     const providerText =
       ttsProfile.provider === "premium"
-        ? "Google Cloud"
-        : "Google Translate";
+        ? "Encore"
+        : "Basic";
 
     // Determine Model Text
     let modelText = t(locale, "commands.profile.model.auto");

@@ -76,7 +76,7 @@ function updatePresence(client: BotClient): void {
     status: "online",
     activities: [
       {
-        name: `/help | ${guildCount} servers${shardInfo}`,
+        name: `We are so back!`,
         type: 3,
       },
     ],

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build artifacts
+dist
+build
+*.tsbuildinfo
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Development files
+.env.local
+.env.development
+.env*.local
+
+# Cache
+cache/
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Scripts
+scripts/
+
+# Old TTS bot (not needed in container)
+discord-tts-bot/

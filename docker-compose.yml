@@ -1,22 +1,72 @@
-version: '3.8'
-
 services:
+  bot:
+    build: .
+    container_name: meowsica-bot
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENABLE_REDIS=true
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - meowsica-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   redis:
     image: redis:7.2-alpine
     container_name: meowsica-redis
-    ports:
-      - "6378:6379"
+    restart: always
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes
-    restart: unless-stopped
+    command: >
+      redis-server 
+      --appendonly yes
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --tcp-keepalive 60
+      --timeout 300
+    networks:
+      - meowsica-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 96M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  meowsica-network:
+    driver: bridge
 
 volumes:
   redis-data:
     driver: local
-

@@ -134,7 +134,7 @@ export default {
         voice: "Model",
         encoreRequired: "Encore Required",
         encoreRequiredDesc:
-          "This is a Meowsica Encore feature. You can keep using Basic (Google Translate) for free!", // Giải thích nhẹ nhàng hơn
+          "This is an Encore feature. You can keep using Basic (Google Translate) for free!", // Giải thích nhẹ nhàng hơn
         invalidLanguage: "Invalid code. Please pick from the list.",
       },
       info: {
@@ -146,7 +146,7 @@ export default {
         language: "Language",
         provider: "Provider",
         model: "Model",
-        upgradeHint: "Unlock Wavenet voices with Meowsica Encore!",
+        upgradeHint: "Unlock Wavenet voices with Encore!",
       },
       reset: {
         description: "Reset to default settings",
@@ -175,15 +175,15 @@ export default {
         daysOption: "Days (leave empty for lifetime)",
         daysOptionDesc: "Number of days (leave empty for lifetime)",
         success: "Encore Granted",
-        grantedDays: "Gave **{user}** Meowsica Encore for **{days} days**!",
-        grantedLifetime: "Gave **{user}** lifetime Meowsica Encore! Wow!",
+        grantedDays: "Gave **{user}** Encore for **{days} days**!",
+        grantedLifetime: "Gave **{user}** lifetime Encore! Wow!",
       },
       revoke: {
         description: "Remove Encore from a user",
         userOption: "User",
         userOptionDesc: "The user to revoke Encore from",
         success: "Encore Revoked",
-        revoked: "Removed Meowsica Encore from **{user}**.",
+        revoked: "Removed Encore from **{user}**.",
       },
       check: {
         description: "Check Encore status",
@@ -214,7 +214,7 @@ export default {
         statusFree: "Free Plan",
         statusActive: "Encore Active",
         statusLifetime: "Encore (Lifetime)",
-        upgradeHint: "Want better quality? Upgrade to Meowsica Encore!",
+        upgradeHint: "Want better quality? Upgrade to Encore!",
       },
       buttons: {
         config: "Configure",
@@ -238,7 +238,7 @@ export default {
         providerEncoreDesc: "Premium, lifelike Wavenet voices", // Mô tả hấp dẫn hơn
         providerPremiumLabel: "Encore (Google Cloud)",
         providerUpdated: "Provider set to {provider}",
-        encoreRequired: "This needs Meowsica Encore. Upgrade to unlock Wavenet!",
+        encoreRequired: "This needs Encore. Upgrade to unlock Wavenet!",
         variantPlaceholder: "Choose a voice style...",
         variantLockedPlaceholder: "Not available in Basic",
         variantNotAvailable: "Not Available",
@@ -337,7 +337,7 @@ export default {
   },
 
   encore: {
-    badge: "Meowsica Encore",
+    badge: "Encore",
     modeActive: "Using Wavenet voice",
     expired: "Your Encore plan has ended.",
     notAvailable: "Wavenet voices aren't available right now.",

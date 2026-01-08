@@ -1,30 +1,29 @@
 import type { VoiceLanguageCode } from "./voices.ts";
 import { getConfig } from "../config/index.ts";
 import { ttsLogger } from "../utils/logger.ts";
+import { extractLanguageCode } from "../services/GoogleTTSService.ts";
 
-export type TTSProviderType = "standard" | "wavenet";
+export type TTSProviderType = "basic" | "premium";
 
 export interface TTSPayload {
   url: string;
-
   text: string;
-
   language: VoiceLanguageCode;
-
   provider: TTSProviderType;
+  voiceName?: string | null;
 }
 
-export interface WavenetAudioResult {
+export interface PremiumAudioResult {
   audioContent: Buffer;
-  provider: "wavenet";
+  provider: "premium";
 }
 
-export interface StandardAudioResult {
+export interface BasicAudioResult {
   url: string;
-  provider: "standard";
+  provider: "basic";
 }
 
-export type AudioResult = WavenetAudioResult | StandardAudioResult;
+export type AudioResult = PremiumAudioResult | BasicAudioResult;
 
 interface GoogleCloudTTSRequest {
   input: { text: string };
@@ -117,20 +116,45 @@ function getCloudLanguageCode(languageCode: VoiceLanguageCode): string {
 }
 
 /**
- * Synthesize speech using Google Cloud TTS (Wavenet)
+ * Audio tuning options for Premium (Encore) provider
+ */
+export interface AudioTuningOptions {
+  /** Speaking rate/speed: 0.25 to 4.0 (default: 1.0) */
+  speakingRate?: number;
+  /** Pitch adjustment: -20.0 to 20.0 (default: 0.0) */
+  pitch?: number;
+}
+
+/**
+ * Synthesize speech using Google Cloud TTS (Wavenet only)
+ * This is the Premium provider for Encore subscribers
+ * 
+ * @param text - Text to synthesize
+ * @param language - Language code
+ * @param specificVoiceName - Optional specific voice ID
+ * @param tuning - Optional audio tuning (speed/pitch)
  */
 export async function synthesizeWavenet(
   text: string,
   language: VoiceLanguageCode,
+  specificVoiceName?: string | null,
+  tuning?: AudioTuningOptions,
 ): Promise<Buffer | null> {
   const config = getConfig();
   const apiKey = config.googleCloudApiKey;
   if (!apiKey) {
-    ttsLogger.warn("Google Cloud API key not configured, falling back to standard TTS");
+    ttsLogger.warn("Google Cloud API key not configured, falling back to basic TTS");
     return null;
   }
-  const voiceName = getWavenetVoice(language);
-  const languageCode = getCloudLanguageCode(language);
+  const voiceName = specificVoiceName || getWavenetVoice(language);
+  const languageCode = specificVoiceName
+    ? extractLanguageCode(specificVoiceName)
+    : getCloudLanguageCode(language);
+  
+  // Apply tuning with validation (Google Cloud limits)
+  const speakingRate = Math.max(0.25, Math.min(4.0, tuning?.speakingRate ?? 1.0));
+  const pitch = Math.max(-20.0, Math.min(20.0, tuning?.pitch ?? 0.0));
+  
   const requestBody: GoogleCloudTTSRequest = {
     input: { text },
     voice: {
@@ -139,8 +163,8 @@ export async function synthesizeWavenet(
     },
     audioConfig: {
       audioEncoding: "MP3",
-      speakingRate: 1.0,
-      pitch: 0,
+      speakingRate,
+      pitch,
     },
   };
   try {
@@ -173,15 +197,33 @@ export function isWavenetAvailable(): boolean {
   return config.googleCloudApiKey !== null;
 }
 
-function generateTTSUrl(text: string, language: string): string {
+/**
+ * Convert full locale code to short code for Google Translate API
+ * e.g., "vi-VN" -> "vi", "en-US" -> "en"
+ */
+function toShortLanguageCode(languageCode: string): string {
+  return languageCode.split("-")[0] || languageCode;
+}
+
+/**
+ * Generate URL for Google Translate TTS (Basic/Free provider)
+ * CRITICAL: Google Translate requires short language codes (e.g., "vi" not "vi-VN")
+ * 
+ * @param text - Text to synthesize
+ * @param language - Language code (will be converted to short format)
+ * @param slow - Whether to use slow mode (default: false)
+ *               For Basic provider, speed is binary: Normal (ttsspeed=1) or Slow (ttsspeed=0.24)
+ *               The "magic number" 0.24 threshold is used to detect slow mode in DB
+ */
+function generateTTSUrl(text: string, language: string, slow: boolean = false): string {
+  const shortLang = toShortLanguageCode(language);
   const params = new URLSearchParams({
     ie: "UTF-8",
     q: text,
-    tl: language,
+    tl: shortLang,
     client: "tw-ob",
-    ttsspeed: "1",
+    ttsspeed: slow ? "0.24" : "1",
   });
-
   return `${GOOGLE_TTS_BASE}?${params.toString()}`;
 }
 
@@ -281,25 +323,36 @@ function sanitizeText(text: string): string {
 /**
  * Create TTS payloads for a message
  * Returns multiple payloads if the text needs to be split
+ * 
+ * @param text - Text to synthesize
+ * @param language - Language code
+ * @param provider - TTS provider type (basic or premium)
+ * @param voiceName - Optional specific voice ID (for premium)
+ * @param speed - Speed setting from DB (for basic: <0.5 = slow mode)
  */
 export function createTTSPayloads(
   text: string,
   language: VoiceLanguageCode,
-  provider: TTSProviderType = "standard",
+  provider: TTSProviderType = "basic",
+  voiceName?: string | null,
+  speed?: number,
 ): TTSPayload[] {
   const sanitized = sanitizeText(text);
-
   if (!sanitized) {
     return [];
   }
-
+  
+  // For Basic provider: speed <= 0.25 means "Slow Mode" (magic number threshold)
+  // 0.25 is the minimum value allowed by the DB constraint
+  const isSlow = provider === "basic" && (speed ?? 1.0) <= 0.25;
+  
   const segments = splitText(sanitized);
-
   return segments.map((segment) => ({
-    url: generateTTSUrl(segment, language),
+    url: generateTTSUrl(segment, language, isSlow),
     text: segment,
     language,
     provider,
+    voiceName,
   }));
 }
 

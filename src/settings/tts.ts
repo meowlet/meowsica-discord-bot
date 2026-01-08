@@ -1,59 +1,42 @@
-import { Database } from "bun:sqlite";
+/**
+ * TTS Settings - Wrapper module for TTS-specific voice language settings
+ *
+ * This module provides a clean interface for TTS language settings,
+ * delegating to the main db.ts repository using the new normalized schema.
+ */
+
 import type { ChatInputCommandInteraction } from "discord.js";
 import {
   DEFAULT_VOICE_LANGUAGE,
-  isValidVoiceLanguage,
   type VoiceLanguageCode,
 } from "../tts/voices.ts";
+import { isSupportedLanguage } from "../constants/languages.ts";
+import {
+  db,
+  getUserVoice,
+  setUserVoice,
+  getServerVoice,
+  setServerVoice,
+} from "./db.ts";
 
-const db = new Database("settings.db");
-
-try {
-  db.run(`ALTER TABLE user_settings ADD COLUMN tts_language TEXT`);
-} catch {}
-
-try {
-  db.run(`ALTER TABLE server_settings ADD COLUMN tts_language TEXT`);
-} catch {}
-
-const getUserTTSLanguage = db.prepare<
-  { tts_language: string | null },
-  [string]
->("SELECT tts_language FROM user_settings WHERE user_id = ?");
-
-const getServerTTSLanguage = db.prepare<
-  { tts_language: string | null },
-  [string]
->("SELECT tts_language FROM server_settings WHERE server_id = ?");
-
-const upsertUserTTSLanguage = db.prepare(
-  `INSERT INTO user_settings (user_id, tts_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(user_id) DO UPDATE SET tts_language = excluded.tts_language, updated_at = unixepoch()`,
-);
-
-const upsertServerTTSLanguage = db.prepare(
-  `INSERT INTO server_settings (server_id, tts_language, updated_at) VALUES (?, ?, unixepoch())
-   ON CONFLICT(server_id) DO UPDATE SET tts_language = excluded.tts_language, updated_at = unixepoch()`,
-);
+// Re-export for backward compatibility with type-safe wrappers
 
 export function getUserTTS(userId: string): VoiceLanguageCode | null {
-  const row = getUserTTSLanguage.get(userId);
-  const lang = row?.tts_language;
-  if (lang && isValidVoiceLanguage(lang)) {
-    return lang;
+  const lang = getUserVoice(userId);
+  if (lang && isSupportedLanguage(lang)) {
+    return lang as VoiceLanguageCode;
   }
   return null;
 }
 
 export function setUserTTS(userId: string, language: VoiceLanguageCode): void {
-  upsertUserTTSLanguage.run(userId, language);
+  setUserVoice(userId, language);
 }
 
 export function getServerTTS(serverId: string): VoiceLanguageCode | null {
-  const row = getServerTTSLanguage.get(serverId);
-  const lang = row?.tts_language;
-  if (lang && isValidVoiceLanguage(lang)) {
-    return lang;
+  const lang = getServerVoice(serverId);
+  if (lang && isSupportedLanguage(lang)) {
+    return lang as VoiceLanguageCode;
   }
   return null;
 }
@@ -62,7 +45,7 @@ export function setServerTTS(
   serverId: string,
   language: VoiceLanguageCode,
 ): void {
-  upsertServerTTSLanguage.run(serverId, language);
+  setServerVoice(serverId, language);
 }
 
 export function getTTSLanguage(

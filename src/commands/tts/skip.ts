@@ -5,7 +5,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import type { Command } from "../../types/command.ts";
-import { t, DEFAULT_LOCALE } from "../../i18n/index.ts";
+import { t } from "../../i18n/index.ts";
 import { getLocale } from "../../settings/db.ts";
 import { isConnected, getConnectionChannelId } from "../../voice/manager.ts";
 import { Colors } from "../../constants/index.ts";
@@ -14,7 +14,10 @@ import { skipCurrent, getQueueStatus } from "../../tts/player.ts";
 export const skip: Command = {
   data: new SlashCommandBuilder()
     .setName("skip")
-    .setDescription(t(DEFAULT_LOCALE, "commands.skip.description")),
+    .setDescription("Skip the current TTS message")
+    .setDescriptionLocalizations({
+      vi: "Bỏ qua tin nhắn TTS hiện tại",
+    }),
 
   async execute(interaction) {
     const locale = getLocale(interaction);

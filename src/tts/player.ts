@@ -14,30 +14,27 @@ import {
   isWavenetAvailable,
   type TTSPayload,
   type TTSProviderType,
+  type AudioTuningOptions,
 } from "./provider.ts";
 import type { VoiceLanguageCode } from "./voices.ts";
 import { resetTimeout } from "../voice/manager.ts";
-import { isPremiumUser } from "../settings/db.ts";
+import { isPremiumUser, getUserTTSProfile } from "../settings/db.ts";
 
 export interface QueueItem {
   payloads: TTSPayload[];
-
   currentIndex: number;
-
   userId: string;
-
   originalText: string;
-
   isEncoreMode: boolean;
+  voiceName?: string | null;
+  /** Audio tuning for Premium provider (speed/pitch) */
+  tuning?: AudioTuningOptions;
 }
 
 interface GuildPlayerState {
   player: AudioPlayer;
-
   queue: QueueItem[];
-
   isPlaying: boolean;
-
   currentItem: QueueItem | null;
 }
 
@@ -45,38 +42,30 @@ const guildPlayers = new Map<string, GuildPlayerState>();
 
 function getOrCreateState(guildId: string): GuildPlayerState {
   let state = guildPlayers.get(guildId);
-
   if (!state) {
     const player = createAudioPlayer();
-
     state = {
       player,
       queue: [],
       isPlaying: false,
       currentItem: null,
     };
-
     player.on(AudioPlayerStatus.Idle, () => {
       handlePlayerIdle(guildId);
     });
-
     player.on("error", (error) => {
       ttsLogger.error(`Audio player error in guild ${guildId}:`, error);
       handlePlayerIdle(guildId);
     });
-
     guildPlayers.set(guildId, state);
   }
-
   return state;
 }
 
 function handlePlayerIdle(guildId: string): void {
   const state = guildPlayers.get(guildId);
   if (!state) return;
-
   const currentItem = state.currentItem;
-
   if (
     currentItem &&
     currentItem.currentIndex < currentItem.payloads.length - 1
@@ -84,26 +73,30 @@ function handlePlayerIdle(guildId: string): void {
     currentItem.currentIndex++;
     const nextPayload = currentItem.payloads[currentItem.currentIndex];
     if (nextPayload) {
-      playPayload(guildId, nextPayload);
+      playPayload(guildId, nextPayload, currentItem.tuning);
     }
     return;
   }
-
   state.currentItem = null;
   state.isPlaying = false;
-
   if (state.queue.length > 0) {
     const nextItem = state.queue.shift()!;
     playItem(guildId, nextItem);
   }
 }
 
-async function playPayloadWavenet(
+async function playPayloadPremium(
   guildId: string,
   payload: TTSPayload,
   state: GuildPlayerState,
+  tuning?: AudioTuningOptions,
 ): Promise<boolean> {
-  const audioBuffer = await synthesizeWavenet(payload.text, payload.language);
+  const audioBuffer = await synthesizeWavenet(
+    payload.text,
+    payload.language,
+    payload.voiceName,
+    tuning,
+  );
   if (!audioBuffer) {
     return false;
   }
@@ -123,7 +116,7 @@ async function playPayloadWavenet(
   return true;
 }
 
-async function playPayloadStandard(
+async function playPayloadBasic(
   guildId: string,
   payload: TTSPayload,
   state: GuildPlayerState,
@@ -158,19 +151,19 @@ async function playPayloadStandard(
 async function playPayload(
   guildId: string,
   payload: TTSPayload,
+  tuning?: AudioTuningOptions,
 ): Promise<void> {
   const state = guildPlayers.get(guildId);
   if (!state) return;
-
   try {
-    if (payload.provider === "wavenet") {
-      const success = await playPayloadWavenet(guildId, payload, state);
+    if (payload.provider === "premium") {
+      const success = await playPayloadPremium(guildId, payload, state, tuning);
       if (!success) {
-        ttsLogger.warn("Wavenet failed, falling back to standard TTS");
-        await playPayloadStandard(guildId, payload, state);
+        ttsLogger.warn("Premium (Wavenet) failed, falling back to basic TTS");
+        await playPayloadBasic(guildId, payload, state);
       }
     } else {
-      await playPayloadStandard(guildId, payload, state);
+      await playPayloadBasic(guildId, payload, state);
     }
   } catch (error) {
     ttsLogger.error(`Failed to play TTS payload:`, error);
@@ -181,13 +174,11 @@ async function playPayload(
 function playItem(guildId: string, item: QueueItem): void {
   const state = guildPlayers.get(guildId);
   if (!state) return;
-
   state.currentItem = item;
   item.currentIndex = 0;
-
   const firstPayload = item.payloads[0];
   if (firstPayload) {
-    playPayload(guildId, firstPayload);
+    playPayload(guildId, firstPayload, item.tuning);
   }
 }
 
@@ -195,6 +186,17 @@ export interface QueueTTSResult {
   queued: boolean;
   position: number;
   isEncoreMode: boolean;
+  provider: TTSProviderType;
+  providerLabel: string;
+  modelLabel: string;
+}
+
+export interface QueueTTSOptions {
+  guildId: string;
+  text: string;
+  language: VoiceLanguageCode;
+  userId: string;
+  overrideVoiceName?: string | null;
 }
 
 export function queueTTS(
@@ -202,34 +204,70 @@ export function queueTTS(
   text: string,
   language: VoiceLanguageCode,
   userId: string,
+  overrideVoiceName?: string | null,
 ): QueueTTSResult {
   const state = getOrCreateState(guildId);
   const isUserPremium = isPremiumUser(userId);
-  const useWavenet = isUserPremium && isWavenetAvailable();
-  const provider: TTSProviderType = useWavenet ? "wavenet" : "standard";
-  const payloads = createTTSPayloads(text, language, provider);
-
+  const profile = getUserTTSProfile(userId);
+  const voiceName = overrideVoiceName ?? profile.voiceId;
+  const requestedProvider = profile.provider;
+  const usePremium =
+    isUserPremium &&
+    isWavenetAvailable() &&
+    requestedProvider === "premium";
+  const provider: TTSProviderType = usePremium ? "premium" : "basic";
+  const effectiveVoiceName = usePremium ? voiceName : null;
+  const providerLabel = usePremium ? "Google Wavenet" : "Google Translate";
+  const modelLabel = effectiveVoiceName || "N/A";
+  
+  // Pass speed to createTTSPayloads (used for Basic provider slow mode detection)
+  const payloads = createTTSPayloads(text, language, provider, effectiveVoiceName, profile.speed);
   if (payloads.length === 0) {
-    return { queued: false, position: -1, isEncoreMode: false };
+    return {
+      queued: false,
+      position: -1,
+      isEncoreMode: false,
+      provider: "basic",
+      providerLabel: "Google Translate",
+      modelLabel: "N/A",
+    };
   }
-
+  
+  // Build tuning options for Premium provider
+  const tuning: AudioTuningOptions | undefined = usePremium
+    ? { speakingRate: profile.speed, pitch: profile.pitch }
+    : undefined;
+  
   const item: QueueItem = {
     payloads,
     currentIndex: 0,
     userId,
     originalText: text,
-    isEncoreMode: useWavenet,
+    isEncoreMode: usePremium,
+    voiceName: effectiveVoiceName,
+    tuning,
   };
-
   if (!state.isPlaying && !state.currentItem) {
     playItem(guildId, item);
-    return { queued: false, position: 0, isEncoreMode: useWavenet };
+    return {
+      queued: false,
+      position: 0,
+      isEncoreMode: usePremium,
+      provider,
+      providerLabel,
+      modelLabel,
+    };
   }
-
   state.queue.push(item);
   const position = state.queue.length;
-
-  return { queued: true, position, isEncoreMode: useWavenet };
+  return {
+    queued: true,
+    position,
+    isEncoreMode: usePremium,
+    provider,
+    providerLabel,
+    modelLabel,
+  };
 }
 
 export function skipCurrent(guildId: string): boolean {
@@ -237,7 +275,6 @@ export function skipCurrent(guildId: string): boolean {
   if (!state || !state.isPlaying) {
     return false;
   }
-
   state.player.stop(true);
   return true;
 }
@@ -245,14 +282,11 @@ export function skipCurrent(guildId: string): boolean {
 export function clearQueue(guildId: string): number {
   const state = guildPlayers.get(guildId);
   if (!state) return 0;
-
   const cleared = state.queue.length + (state.currentItem ? 1 : 0);
-
   state.queue = [];
   state.currentItem = null;
   state.isPlaying = false;
   state.player.stop(true);
-
   return cleared;
 }
 
@@ -263,7 +297,6 @@ export function getQueueStatus(guildId: string): {
   queue: QueueItem[];
 } {
   const state = guildPlayers.get(guildId);
-
   if (!state) {
     return {
       isPlaying: false,
@@ -272,7 +305,6 @@ export function getQueueStatus(guildId: string): {
       queue: [],
     };
   }
-
   return {
     isPlaying: state.isPlaying,
     currentItem: state.currentItem,

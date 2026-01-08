@@ -15,8 +15,12 @@ export function createBot(): BotClient {
     handleReady(client);
   });
 
-  client.on(Events.InteractionCreate, (interaction) => {
-    handleInteraction(client, interaction);
+  client.on(Events.InteractionCreate, async (interaction) => {
+    try {
+      await handleInteraction(client, interaction);
+    } catch (error) {
+      botLogger.error("Unhandled interaction error:", error);
+    }
   });
 
   client.on(Events.GuildCreate, (guild) => {

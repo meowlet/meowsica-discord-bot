@@ -74,7 +74,7 @@ export const VOICE_LANGUAGE_CODES = Object.keys(
 
 export type VoiceLanguageCode = keyof typeof VOICE_LANGUAGES;
 
-export const DEFAULT_VOICE_LANGUAGE: VoiceLanguageCode = "en";
+export const DEFAULT_VOICE_LANGUAGE: VoiceLanguageCode = "vi";
 
 export function isValidVoiceLanguage(code: string): code is VoiceLanguageCode {
   return code in VOICE_LANGUAGES;

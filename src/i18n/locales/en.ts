@@ -333,8 +333,8 @@ export default {
       usage: {
         notApplicable: "N/A (Free Plan)",
       },
-      freeTrialHint: "You're enjoying Encore for free until Feb 1, 2026!",
-      quotaExceeded: "⚠️ Encore Quota Exceeded. You have used {used}/{limit} characters. Please wait until next month or use Basic.",
+      freeTrialHint: "All free features will remain free forever! You're enjoying Encore for free until Feb 1, 2026!",
+      quotaExceeded: "Encore Quota Exceeded. You have used {used}/{limit} characters. Please wait until next month or use Basic.",
     },
   },
 

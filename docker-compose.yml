@@ -9,6 +9,8 @@ services:
     env_file:
       - .env
     environment:
+      - ENABLE_SHARDING=true
+      - SHARD_COUNT=3
       - ENABLE_REDIS=true
       - REDIS_URL=redis://redis:6379
     networks:
@@ -16,11 +18,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '2.0'
+          memory: 1400M
         reservations:
-          cpus: '0.1'
-          memory: 128M
+          cpus: '0.5'
+          memory: 600M
     logging:
       driver: "json-file"
       options:
@@ -36,7 +38,7 @@ services:
     command: >
       redis-server 
       --appendonly yes
-      --maxmemory 64mb
+      --maxmemory 80mb
       --maxmemory-policy allkeys-lru
       --save 900 1
       --tcp-keepalive 60
@@ -46,11 +48,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: 96M
+          cpus: '0.5'
+          memory: 112M
         reservations:
-          cpus: '0.05'
-          memory: 32M
+          cpus: '0.1'
+          memory: 48M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s

@@ -15,6 +15,8 @@ services:
       - REDIS_URL=redis://redis:6379
     networks:
       - meowsica-network
+    volumes:
+      - bot-data:/app/data
     deploy:
       resources:
         limits:
@@ -71,4 +73,6 @@ networks:
 
 volumes:
   redis-data:
+    driver: local
+  bot-data:
     driver: local

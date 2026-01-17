@@ -24,7 +24,7 @@ import {
 // Database Initialization
 // ============================================================================
 
-const db = new Database("settings.db");
+const db = new Database("data/settings.db");
 
 // Run migration/initialization
 initializeSchema(db);

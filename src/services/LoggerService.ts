@@ -20,8 +20,8 @@ const logServiceLogger = logger.withTag("LOG");
 // Schema
 // ============================================================================
 
-/** Logs database path - same folder as settings.db */
-const LOG_DB_PATH = "logs.db";
+/** Logs database path - stored in data folder for persistence */
+const LOG_DB_PATH = "data/logs.db";
 
 const COMMAND_LOGS_SCHEMA = `
   CREATE TABLE IF NOT EXISTS command_logs (

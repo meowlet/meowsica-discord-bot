@@ -69,23 +69,31 @@ async function handleCommand(
     return;
   }
 
+  // Commands that handle their own logging (e.g., need model info)
+  const selfLoggingCommands = ["say"];
+  const shouldLog = !selfLoggingCommands.includes(interaction.commandName);
+
   try {
     commandLogger.info(`/${interaction.commandName} by ${interaction.user.tag}`);
     await command.execute(interaction);
-    
-    // Log successful command (fire-and-forget)
-    logCommand(createLogEntryFromInteraction(interaction, "success"));
+
+    // Log successful command (fire-and-forget) - skip if command logs itself
+    if (shouldLog) {
+      logCommand(createLogEntryFromInteraction(interaction, "success"));
+    }
   } catch (error) {
     commandLogger.error(`Error executing /${interaction.commandName}:`, error);
-    
+
     // Determine log status based on error type
     logStatus = "error";
     if (error instanceof Error && error.name === "QuotaExceededError") {
       logStatus = "quota_limit";
     }
-    
-    // Log failed command (fire-and-forget)
-    logCommand(createLogEntryFromInteraction(interaction, logStatus));
+
+    // Log failed command (fire-and-forget) - skip if command logs itself
+    if (shouldLog) {
+      logCommand(createLogEntryFromInteraction(interaction, logStatus));
+    }
 
     // Don't try to respond if it's already an interaction acknowledgment error
     const isAcknowledgeError = error instanceof Error && 

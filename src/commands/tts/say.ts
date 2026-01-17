@@ -19,6 +19,10 @@ import { queueTTS, QuotaExceededError } from "../../tts/player.ts";
 import { validateTTSText } from "../../tts/provider.ts";
 import { getTTSLanguage } from "../../settings/tts.ts";
 import { MONTHLY_QUOTA_LIMIT } from "../../services/UsageService.ts";
+import {
+  logCommand,
+  createLogEntryFromInteraction,
+} from "../../services/LoggerService.ts";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -111,6 +115,9 @@ export const say: Command = {
         });
 
       await interaction.editReply({ embeds: [embed] });
+
+      // Log with model info
+      logCommand(createLogEntryFromInteraction(interaction, "success", result.modelLabel));
     } catch (error) {
       // Handle quota exceeded error
       if (error instanceof QuotaExceededError) {
@@ -123,9 +130,15 @@ export const say: Command = {
         await interaction.editReply({
           content: quotaMessage,
         });
+
+        // Log quota exceeded
+        logCommand(createLogEntryFromInteraction(interaction, "quota_limit"));
         return;
       }
-      
+
+      // Log general error
+      logCommand(createLogEntryFromInteraction(interaction, "error"));
+
       const embed = new EmbedBuilder()
         .setTitle(t(locale, "common.error"))
         .setDescription(t(locale, "commands.say.joinFailed"))

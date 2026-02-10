@@ -8,7 +8,6 @@ import { handleGuildCreate, handleGuildDelete } from "./events/guild.ts";
 
 export function createBot(): BotClient {
   const config = getConfig();
-
   const client = new BotClient({ config });
 
   client.once(Events.ClientReady, () => {

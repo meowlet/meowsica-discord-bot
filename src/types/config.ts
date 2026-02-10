@@ -20,6 +20,15 @@ export interface BotConfig {
   readonly testingGuildId: string | null;
 
   readonly googleCloudApiKey: string | null;
+
+  /** Default bot presence status: online | idle | dnd | invisible */
+  readonly presenceStatus: "online" | "idle" | "dnd" | "invisible";
+
+  /** Default activity name (e.g. "We are so back!") */
+  readonly presenceActivityName: string;
+
+  /** Discord activity type (3 = Watching) */
+  readonly presenceActivityType: number;
 }
 
 export interface RedisConfig {

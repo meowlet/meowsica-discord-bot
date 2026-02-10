@@ -11,13 +11,11 @@ const mainLogger = logger.withTag("MAIN");
 
 async function main(): Promise<void> {
   mainLogger.info("Starting bot...");
-
   const config = getConfig();
-
   if (config.enableSharding) {
     await startWithSharding(config);
   } else {
-    await startDirect();
+    await startDirect(config);
   }
 }
 
@@ -25,22 +23,20 @@ async function startWithSharding(
   config: ReturnType<typeof getConfig>,
 ): Promise<void> {
   const botFile = join(import.meta.dir, "bot.ts");
-
   const manager = createShardManager({
     config,
     botFile,
   });
-
   await startShardManager(manager);
-
   setupShutdown(() => {
     process.exit(0);
   });
 }
 
-async function startDirect(): Promise<void> {
+async function startDirect(
+  config: ReturnType<typeof getConfig>,
+): Promise<void> {
   const client = await startBot();
-
   setupShutdown(async () => {
     await client.shutdown();
     process.exit(0);

@@ -3,10 +3,11 @@ FROM oven/bun:1.2-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and patches
 COPY package.json bun.lock* ./
+COPY patches ./patches
 
-# Install dependencies
+# Install dependencies (patches are auto-applied by bun)
 RUN bun install --frozen-lockfile --production
 
 # Production stage

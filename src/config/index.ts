@@ -59,6 +59,26 @@ function getShardCount(
   return parsed;
 }
 
+const VALID_PRESENCE_STATUSES = [
+  "online",
+  "idle",
+  "dnd",
+  "invisible",
+] as const;
+
+function getPresenceStatus(
+  key: string,
+  defaultValue: (typeof VALID_PRESENCE_STATUSES)[number],
+): (typeof VALID_PRESENCE_STATUSES)[number] {
+  const value = Bun.env[key];
+  if (value === undefined || value === "") return defaultValue;
+  const lower = value.toLowerCase();
+  if (VALID_PRESENCE_STATUSES.includes(lower as (typeof VALID_PRESENCE_STATUSES)[number])) {
+    return lower as (typeof VALID_PRESENCE_STATUSES)[number];
+  }
+  return defaultValue;
+}
+
 export function loadConfig(): BotConfig {
   const enableSharding = getEnvBoolean("ENABLE_SHARDING", false);
   const enableRedis = getEnvBoolean("ENABLE_REDIS", enableSharding);
@@ -95,6 +115,9 @@ export function loadConfig(): BotConfig {
     testingGuildId:
       getEnvStringOrNull("DISCORD_GUILD_ID"),
     googleCloudApiKey: getEnvStringOrNull("GOOGLE_CLOUD_API_KEY"),
+    presenceStatus: getPresenceStatus("BOT_PRESENCE_STATUS", "online"),
+    presenceActivityName: getEnvString("BOT_PRESENCE_ACTIVITY_NAME", "We are so back!"),
+    presenceActivityType: getEnvNumber("BOT_PRESENCE_ACTIVITY_TYPE", 3),
   };
 }
 

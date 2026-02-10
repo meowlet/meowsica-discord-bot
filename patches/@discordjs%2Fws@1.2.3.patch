@@ -1,0 +1,63 @@
+diff --git a/dist/defaultWorker.mjs b/dist/defaultWorker.mjs
+index 1302a02537062b489b0be156eccb60a960f015c5..2b610c931b179c34828f28ae630adb984fcc412f 100644
+--- a/dist/defaultWorker.mjs
++++ b/dist/defaultWorker.mjs
+@@ -275,6 +275,7 @@ var SimpleIdentifyThrottler = class {
+ 
+ // src/utils/constants.ts
+ var DefaultDeviceProperty = `@discordjs/ws [VI]{{inject}}[/VI]`;
++var MobileBrowserProperty = "Discord iOS";
+ var getDefaultSessionStore = lazy(() => new Collection5());
+ var DefaultWebSocketManagerOptions = {
+   async buildIdentifyThrottler(manager) {
+@@ -287,7 +288,7 @@ var DefaultWebSocketManagerOptions = {
+   largeThreshold: null,
+   initialPresence: null,
+   identifyProperties: {
+-    browser: DefaultDeviceProperty,
++    browser: MobileBrowserProperty,
+     device: DefaultDeviceProperty,
+     os: process.platform
+   },
+diff --git a/dist/index.js b/dist/index.js
+index 106b2ec450a248cd5bd7c36c038215145438eade..11ef354c67a1488d7e2b7d20d36ab3f4cdf4c05a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -520,6 +520,7 @@ var CompressionMethod = /* @__PURE__ */ ((CompressionMethod2) => {
+   return CompressionMethod2;
+ })(CompressionMethod || {});
+ var DefaultDeviceProperty = `@discordjs/ws 1.2.3`;
++var MobileBrowserProperty = "Discord iOS";
+ var getDefaultSessionStore = (0, import_util.lazy)(() => new import_collection4.Collection());
+ var DefaultWebSocketManagerOptions = {
+   async buildIdentifyThrottler(manager) {
+@@ -532,7 +533,7 @@ var DefaultWebSocketManagerOptions = {
+   largeThreshold: null,
+   initialPresence: null,
+   identifyProperties: {
+-    browser: DefaultDeviceProperty,
++    browser: MobileBrowserProperty,
+     device: DefaultDeviceProperty,
+     os: import_node_process.default.platform
+   },
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 0ebc06d477ac54303c7542261cc5bcc9a9537519..9a7a7085b9bca5b73e2f6acf68161811cc776ff7 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -481,6 +481,7 @@ var CompressionMethod = /* @__PURE__ */ ((CompressionMethod2) => {
+   return CompressionMethod2;
+ })(CompressionMethod || {});
+ var DefaultDeviceProperty = `@discordjs/ws 1.2.3`;
++var MobileBrowserProperty = "Discord iOS";
+ var getDefaultSessionStore = lazy(() => new Collection4());
+ var DefaultWebSocketManagerOptions = {
+   async buildIdentifyThrottler(manager) {
+@@ -493,7 +494,7 @@ var DefaultWebSocketManagerOptions = {
+   largeThreshold: null,
+   initialPresence: null,
+   identifyProperties: {
+-    browser: DefaultDeviceProperty,
++    browser: MobileBrowserProperty,
+     device: DefaultDeviceProperty,
+     os: process.platform
+   },

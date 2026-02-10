@@ -21,6 +21,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@discordjs/ws@1.2.3": "patches/@discordjs%2Fws@1.2.3.patch",
+  },
   "packages": {
     "@derhuerst/http-basic": ["@derhuerst/http-basic@8.2.4", "", { "dependencies": { "caseless": "^0.12.0", "concat-stream": "^2.0.0", "http-response-object": "^3.0.1", "parse-cache-control": "^1.0.1" } }, "sha512-F9rL9k9Xjf5blCz8HsJRO4diy111cayL2vkY2XE4r4t3n0yPXVYy3KD3nJ1qbrSn9743UWSXH4IwuCa/HWlGFw=="],
 

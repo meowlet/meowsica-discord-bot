@@ -25,5 +25,8 @@
     "@types/bun": "latest",
     "prettier": "^3.7.4",
     "typescript": "^5.7.2"
+  },
+  "patchedDependencies": {
+    "@discordjs/ws@1.2.3": "patches/@discordjs%2Fws@1.2.3.patch"
   }
 }

@@ -5,25 +5,25 @@ import { initializeLoggerService } from "../services/LoggerService.ts";
 import { initializeUsageService } from "../services/UsageService.ts";
 import { initializeCacheService } from "../services/CacheService.ts";
 import { getDatabase } from "../settings/db.ts";
+import {
+  getPresence,
+  initPresenceFromConfig,
+} from "../presence/store.ts";
 
 export async function handleReady(client: BotClient): Promise<void> {
   if (!client.user) {
     botLogger.error("Client user is null on ready event");
     return;
   }
+  initPresenceFromConfig(client.config);
   client.initialized = true;
   const shardInfo = client.getShardInfo();
   const guildCount = client.guilds.cache.size;
   botLogger.info(`${shardInfo} Ready | ${guildCount} guilds`);
-  
-  // Initialize core services
   await initializeServices();
-  
-  // Initialize voice cache (non-blocking)
   initializeVoiceCache().catch((error) => {
     botLogger.warn("Failed to initialize voice cache:", error);
   });
-  
   updatePresence(client);
   setInterval(
     () => {
@@ -68,17 +68,7 @@ async function initializeServices(): Promise<void> {
 
 function updatePresence(client: BotClient): void {
   if (!client.user) return;
-
-  const guildCount = client.guilds.cache.size;
-  const shardInfo = client.isSharded() ? ` | Shard ${client.shardId}` : "";
-
-  client.user.setPresence({
-    status: "online",
-    activities: [
-      {
-        name: `We are so back!`,
-        type: 3,
-      },
-    ],
-  });
+  const presence = getPresence();
+  if (!presence) return;
+  client.user.setPresence(presence);
 }

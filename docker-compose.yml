@@ -1,11 +1,150 @@
-version: '3.9'
 services:
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
   bot:
     build: .
-    env_file: .env
+    container_name: meowsica-bot
+    restart: always
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://meowsica:meowsica@postgres:5432/meowsica
+    networks:
+      - meowsica-network
+    volumes:
+      - bot-cache:/app/cache
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1000M
+        reservations:
+          cpus: "0.5"
+          memory: 420M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: meowsica-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: meowsica
+      POSTGRES_PASSWORD: meowsica
+      POSTGRES_DB: meowsica
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - meowsica-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meowsica -d meowsica"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: meowsica-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 80mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --tcp-keepalive 60
+      --timeout 300
+    networks:
+      - meowsica-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 112M
+        reservations:
+          cpus: "0.1"
+          memory: 48M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: meowsica-alloy
     restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    environment:
+      LOKI_URL: ${LOKI_URL}
+      LOKI_USER: ${LOKI_USER}
+      LOKI_TOKEN: ${LOKI_TOKEN}
+    networks:
+      - meowsica-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 48M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  meowsica-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  bot-cache:
+    driver: local
+  alloy_data:

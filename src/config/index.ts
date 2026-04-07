@@ -121,25 +121,6 @@ export function loadConfig(): BotConfig {
   };
 }
 
-// ============================================================================
-// Free Trial Configuration
-// ============================================================================
-
-/**
- * Free Trial End Date
- * All users get premium features until this date.
- * Set to null to disable free trial.
- */
-export const FREE_TRIAL_END_DATE: Date | null = new Date("2026-02-01T00:00:00Z");
-
-/**
- * Check if free trial is currently active
- */
-export function isFreeTrial(): boolean {
-  if (!FREE_TRIAL_END_DATE) return false;
-  return Date.now() < FREE_TRIAL_END_DATE.getTime();
-}
-
 export function getRedisConfig(): RedisConfig {
   const url = getEnvString("REDIS_URL");
   return {

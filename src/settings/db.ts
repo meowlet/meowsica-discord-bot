@@ -172,96 +172,34 @@ const upsertServerVoice = db.prepare(`
 // Subscription Functions
 // ============================================================================
 
-import { isFreeTrial } from "../config/index.ts";
-
 /**
- * Check if a user has active premium status
- * Returns true during free trial period for all users
+ * Check if a user has premium status
+ * All users are treated as premium - premium features are now free for everyone
  */
-export function isPremiumUser(userId: string): boolean {
-  // Global free trial - everyone gets premium
-  if (isFreeTrial()) return true;
-
-  const row = getSubscription.get(userId);
-  if (!row || row.tier === "free") return false;
-  if (row.expires_at === null) return true; // Lifetime
-  return row.expires_at * 1000 > Date.now();
+export function isPremiumUser(_userId: string): boolean {
+  return true;
 }
 
 /**
- * Get detailed premium status for a user
- * Includes free trial status if active
+ * Get premium status for a user
+ * All users are treated as lifetime premium
  */
-export function getPremiumStatus(userId: string): PremiumStatus & { isFreeTrial?: boolean } {
-  const freeTrial = isFreeTrial();
-  const row = getSubscription.get(userId);
-
-  // During free trial - return premium status for everyone
-  if (freeTrial && (!row || row.tier === "free")) {
-    return {
-      isPremium: true,
-      tier: "encore",
-      expiresAt: null,
-      isExpired: false,
-      isLifetime: false,
-      isFreeTrial: true,
-    };
-  }
-
-  if (!row || row.tier === "free") {
-    return {
-      isPremium: false,
-      tier: "free",
-      expiresAt: null,
-      isExpired: false,
-      isLifetime: false,
-    };
-  }
-
-  const expiresAt = row.expires_at ? new Date(row.expires_at * 1000) : null;
-  const isLifetime = row.expires_at === null;
-  const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
-  const isPremium = !isExpired;
-
+export function getPremiumStatus(_userId: string): PremiumStatus {
   return {
-    isPremium,
-    tier: row.tier as SubscriptionTier,
-    expiresAt,
-    isExpired,
-    isLifetime,
+    isPremium: true,
+    tier: "encore",
+    expiresAt: null,
+    isExpired: false,
+    isLifetime: true,
   };
 }
 
 /**
- * Set premium status for a user
- * @param userId Discord user ID
- * @param durationDays Number of days of premium, or null for lifetime
- * @param tier Subscription tier (default: 'encore')
- */
-export function setUserPremium(
-  userId: string,
-  durationDays: number | null,
-  tier: SubscriptionTier = "encore"
-): void {
-  const expiresAt = durationDays
-    ? Math.floor((Date.now() + durationDays * 24 * 60 * 60 * 1000) / 1000)
-    : null;
-  upsertSubscription.run(userId, tier, expiresAt);
-}
-
-/**
- * Remove premium status from a user
- */
-export function removeUserPremium(userId: string): void {
-  upsertSubscription.run(userId, "free", null);
-}
-
-/**
  * Get subscription tier for a user
+ * All users are treated as Encore tier
  */
-export function getUserTier(userId: string): SubscriptionTier {
-  const row = getSubscription.get(userId);
-  return (row?.tier as SubscriptionTier) ?? "free";
+export function getUserTier(_userId: string): SubscriptionTier {
+  return "encore";
 }
 
 // ============================================================================
@@ -294,7 +232,7 @@ export function getUserTTSProfile(userId: string): UserTTSProfile {
   const row = getUserTTSStmt.get(userId);
 
   return {
-    provider: (row?.tts_provider as TTSProvider) ?? "basic",
+    provider: (row?.tts_provider as TTSProvider) ?? "premium",
     language: row?.tts_language ?? null,
     voiceId: row?.tts_voice_id ?? null,
     speed: row?.tts_speed ?? 1.0,
@@ -373,10 +311,10 @@ export function setUserVoice(userId: string, language: string): void {
 }
 
 /**
- * Reset user's voice to basic (free) mode
+ * Reset user's voice to default settings
  */
 export function resetUserToBasicVoice(userId: string): void {
-  upsertUserTTS.run(userId, "basic", null, null, 1.0, 0.0);
+  upsertUserTTS.run(userId, "premium", null, null, 1.0, 0.0);
 }
 
 // ============================================================================

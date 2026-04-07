@@ -20,7 +20,7 @@ import {
 } from "./provider.ts";
 import type { VoiceLanguageCode } from "./voices.ts";
 import { resetTimeout } from "../voice/manager.ts";
-import { isPremiumUser, getUserTTSProfile } from "../settings/db.ts";
+import { getUserTTSProfile } from "../settings/db.ts";
 
 export interface QueueItem {
   payloads: TTSPayload[];
@@ -247,14 +247,9 @@ export function queueTTS(
   overrideVoiceName?: string | null,
 ): QueueTTSResult {
   const state = getOrCreateState(guildId);
-  const isUserPremium = isPremiumUser(userId);
   const profile = getUserTTSProfile(userId);
   const voiceName = overrideVoiceName ?? profile.voiceId;
-  const requestedProvider = profile.provider;
-  const usePremium =
-    isUserPremium &&
-    isWavenetAvailable() &&
-    requestedProvider === "premium";
+  const usePremium = isWavenetAvailable() && profile.provider === "premium";
   const provider: TTSProviderType = usePremium ? "premium" : "basic";
   const effectiveVoiceName = usePremium ? voiceName : null;
   const providerLabel = usePremium ? "Encore" : "Basic";

@@ -50,7 +50,7 @@ export const SCHEMA = {
     CREATE TABLE IF NOT EXISTS user_preferences (
       user_id TEXT PRIMARY KEY,
       ui_locale TEXT,
-      tts_provider TEXT NOT NULL DEFAULT 'basic' CHECK (tts_provider IN ('basic', 'premium')),
+      tts_provider TEXT NOT NULL DEFAULT 'premium' CHECK (tts_provider IN ('basic', 'premium')),
       tts_language TEXT,
       tts_voice_id TEXT,
       tts_speed REAL NOT NULL DEFAULT 1.0 CHECK (tts_speed >= 0.25 AND tts_speed <= 4.0),

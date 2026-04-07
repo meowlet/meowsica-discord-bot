@@ -19,10 +19,7 @@ import en from "../../i18n/locales/en.ts";
 import vi from "../../i18n/locales/vi.ts";
 import {
   getLocale,
-  isPremiumUser,
   getUserTTSProfile,
-  getPremiumStatus,
-  setUserTTSProfile,
 } from "../../settings/db.ts";
 import { Colors } from "../../constants/index.ts";
 import {
@@ -40,37 +37,14 @@ export function getLanguageFlag(code: string): string {
 }
 
 /**
- * Auto-downgrade check: Reconcile premium settings with subscription status
- * If user has premium settings but no active subscription, silently downgrade to basic
- */
-export function reconcilePremiumSettings(userId: string): void {
-  const isUserPremium = isPremiumUser(userId);
-  const profile = getUserTTSProfile(userId);
-
-  if (!isUserPremium && profile.provider === "premium") {
-    // DETECTED INVALID STATE - user has premium settings but no subscription
-    // Silently downgrade to basic
-    setUserTTSProfile(userId, {
-      provider: "basic",
-      voiceId: null,
-    });
-  }
-}
-
-/**
  * Build the voice dashboard embed
  */
 export function buildVoiceDashboardEmbed(
   userId: string,
   locale: string,
 ): EmbedBuilder {
-  // Auto-downgrade check before rendering
-  reconcilePremiumSettings(userId);
-
   const ttsProfile = getUserTTSProfile(userId);
-  const premiumStatus = getPremiumStatus(userId);
 
-  // Get language display name
   const langCode = ttsProfile.language || "vi";
   const langInfo = getSupportedLanguageByCode(langCode);
   const langFlag = getLanguageFlag(langCode);
@@ -78,32 +52,22 @@ export function buildVoiceDashboardEmbed(
     ? `${langFlag} ${langInfo.name} (${langInfo.nativeName})`
     : `${langFlag} ${langCode}`;
 
-  // Get provider display
   const providerDisplay =
     ttsProfile.provider === "premium"
       ? t(locale, "commands.voice.dashboard.providerEncore")
       : t(locale, "commands.voice.dashboard.providerBasic");
 
-  // Get voice model display
   let modelDisplay = t(locale, "commands.voice.dashboard.modelDefault");
   if (ttsProfile.provider === "premium" && ttsProfile.voiceId) {
-    // Extract variant letter from voice ID (e.g., "vi-VN-Wavenet-A" -> "Wavenet A")
     const parts = ttsProfile.voiceId.split("-");
     const variant = parts[parts.length - 1];
     modelDisplay = `Wavenet ${variant}`;
   }
 
-  // Get status display
-  const statusDisplay = premiumStatus.isPremium
-    ? premiumStatus.isLifetime
-      ? t(locale, "commands.voice.dashboard.statusLifetime")
-      : t(locale, "commands.voice.dashboard.statusActive")
-    : t(locale, "commands.voice.dashboard.statusFree");
-
   const embed = new EmbedBuilder()
     .setTitle(t(locale, "commands.voice.dashboard.title"))
     .setDescription(t(locale, "commands.voice.dashboard.subtitle"))
-    .setColor(premiumStatus.isPremium ? Colors.Success : Colors.Primary)
+    .setColor(Colors.Success)
     .addFields(
       {
         name: t(locale, "commands.voice.dashboard.language"),
@@ -120,19 +84,7 @@ export function buildVoiceDashboardEmbed(
         value: modelDisplay,
         inline: false,
       },
-      {
-        name: t(locale, "commands.voice.dashboard.status"),
-        value: statusDisplay,
-        inline: false,
-      },
     );
-
-  // Add premium hint for free users
-  if (!premiumStatus.isPremium) {
-    embed.setFooter({
-      text: t(locale, "commands.voice.dashboard.upgradeHint"),
-    });
-  }
 
   return embed;
 }

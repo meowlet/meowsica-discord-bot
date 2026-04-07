@@ -17,7 +17,6 @@ import {
 } from "discord.js";
 import { t, type Locale, DEFAULT_LOCALE } from "../i18n/index.ts";
 import {
-  isPremiumUser,
   getUserTTSProfile,
   setUserTTSProfile,
   resetUserToBasicVoice,
@@ -33,7 +32,6 @@ import {
   buildVoiceDashboardEmbed,
   buildDashboardButtons,
   getLanguageFlag,
-  reconcilePremiumSettings,
 } from "../commands/misc/voice.ts";
 
 /**
@@ -141,38 +139,28 @@ function buildLanguageSelect(
 /**
  * Build provider select menu
  * 
- * Strict Visibility Control:
- * - Free Users: Only see "Basic" option
- * - Premium Users: See both "Basic" and "Encore" options
- * - CAPABILITY CHECK: If language doesn't support Wavenet, hide Encore option
+ * All users can choose between Basic and Encore.
+ * CAPABILITY CHECK: If language doesn't support Wavenet, hide Encore option.
  */
 function buildProviderSelect(
   currentProvider: string,
-  isUserPremium: boolean,
   supportsWavenet: boolean,
   locale: Locale,
 ): ActionRowBuilder<StringSelectMenuBuilder> {
-  // Determine if Encore option should be shown
-  // Must be Premium user AND the selected language must support Wavenet
-  const showEncoreOption = isUserPremium && supportsWavenet;
-
-  // Base option available to all users (no emoji per style policy)
   const options: StringSelectMenuOptionBuilder[] = [
     new StringSelectMenuOptionBuilder()
       .setLabel(t(locale, "commands.voice.config.providerBasicLabel"))
       .setDescription(t(locale, "commands.voice.config.providerBasicDesc"))
       .setValue("basic")
-      .setDefault(currentProvider === "basic" || !showEncoreOption),
+      .setDefault(currentProvider === "basic" || !supportsWavenet),
   ];
 
-  // Premium option only visible to Encore subscribers AND if language supports Wavenet
-  if (showEncoreOption) {
+  if (supportsWavenet) {
     options.push(
       new StringSelectMenuOptionBuilder()
         .setLabel(t(locale, "commands.voice.config.providerEncoreLabel"))
         .setDescription(t(locale, "commands.voice.config.providerEncoreDesc"))
         .setValue("premium")
-        .setEmoji("✨")
         .setDefault(currentProvider === "premium"),
     );
   }
@@ -180,7 +168,7 @@ function buildProviderSelect(
   const select = new StringSelectMenuBuilder()
     .setCustomId("select_voice_provider")
     .setPlaceholder(
-      showEncoreOption
+      supportsWavenet
         ? t(locale, "commands.voice.config.providerPlaceholder")
         : t(locale, "commands.voice.config.providerBasicOnly"),
     )
@@ -192,19 +180,15 @@ function buildProviderSelect(
 /**
  * Build variant/model select menu
  * 
- * CRITICAL: This menu is ONLY enabled when:
- * 1. User has Premium (Encore) subscription AND
- * 2. User has selected 'premium' provider
+ * Enabled when user has selected 'premium' provider
  */
 async function buildVariantSelect(
   currentProvider: string,
   currentLanguage: string | null,
   currentVoiceId: string | null,
-  isUserPremium: boolean,
   locale: Locale,
 ): Promise<ActionRowBuilder<StringSelectMenuBuilder>> {
-  // The model selector is enabled ONLY if user is Premium AND provider is 'premium'
-  const isEncoreMode = isUserPremium && currentProvider === "premium";
+  const isEncoreMode = currentProvider === "premium";
   const langCode = currentLanguage || "vi-VN";
 
   let options: StringSelectMenuOptionBuilder[] = [];
@@ -232,17 +216,10 @@ async function buildVariantSelect(
     }
   }
 
-  // If no options available (disabled state), add a placeholder option
   if (options.length === 0) {
-    // Determine the reason for being disabled
-    let description: string;
-    if (!isUserPremium) {
-      description = t(locale, "commands.voice.config.variantRequiresEncore");
-    } else if (currentProvider !== "premium") {
-      description = t(locale, "commands.voice.config.variantBasicMode");
-    } else {
-      description = t(locale, "commands.voice.config.variantNoVoices");
-    }
+    const description = currentProvider !== "premium"
+      ? t(locale, "commands.voice.config.variantBasicMode")
+      : t(locale, "commands.voice.config.variantNoVoices");
 
     options.push(
       new StringSelectMenuOptionBuilder()
@@ -260,7 +237,7 @@ async function buildVariantSelect(
         : t(locale, "commands.voice.config.variantLockedPlaceholder"),
     )
     .addOptions(options)
-    .setDisabled(!isEncoreMode); // CRITICAL: Only enabled in Encore mode
+    .setDisabled(!isEncoreMode);
 
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 }
@@ -385,9 +362,8 @@ function buildPitchSelect(
 /**
  * Build complete config interface
  * 
- * Implements auto-downgrade and strict visibility control:
- * - Auto-downgrades expired premium users to basic
- * - Only shows variant row when user is in Encore mode AND language supports Wavenet
+ * Shows all voice settings with full feature access:
+ * - Shows variant row when provider is 'premium' AND language supports Wavenet
  * - Supports paginated language selection
  * - CAPABILITY CHECK: Hides Encore options if language doesn't support Wavenet
  */
@@ -399,19 +375,11 @@ async function buildConfigInterface(
   embed: EmbedBuilder;
   rows: ActionRowBuilder<StringSelectMenuBuilder>[];
 }> {
-  // Auto-downgrade check before rendering config
-  reconcilePremiumSettings(userId);
-
-  // Fetch corrected profile after reconciliation
   const profile = getUserTTSProfile(userId);
-  const isUserPremium = isPremiumUser(userId);
 
-  // CAPABILITY CHECK: Does the selected language support Wavenet voices?
   const langCode = profile.language || "vi-VN";
   const supportsWavenet = await hasWavenetSupport(langCode);
 
-  // Determine effective provider for UI rendering
-  // If language doesn't support Wavenet, treat as basic mode visually
   const effectiveProvider = supportsWavenet ? profile.provider : "basic";
 
   const embed = new EmbedBuilder()
@@ -419,47 +387,32 @@ async function buildConfigInterface(
     .setDescription(t(locale, "commands.voice.config.subtitle"))
     .setColor(Colors.Primary);
 
-  // Add footnote if Premium user but language lacks Wavenet support
-  if (isUserPremium && !supportsWavenet) {
+  if (!supportsWavenet) {
     embed.setFooter({
       text: t(locale, "commands.voice.config.noWavenetForLanguage"),
     });
   }
 
-  // Determine which page to show
-  // Priority 1: Explicit page from state (e.g., user clicked Next/Prev)
-  // Priority 2: Auto-detect based on user's current language selection
   const languagePage = state.languagePage ?? getLanguagePage(profile.language);
   const languageRow = buildLanguageSelect(profile.language, locale, languagePage);
-  const providerRow = buildProviderSelect(effectiveProvider, isUserPremium, supportsWavenet, locale);
+  const providerRow = buildProviderSelect(effectiveProvider, supportsWavenet, locale);
 
-  // Build rows array - variant row only included when in Encore mode AND language supports Wavenet
   const rows: ActionRowBuilder<StringSelectMenuBuilder>[] = [languageRow, providerRow];
 
-  // STRICT CONDITION: Only add variant row if:
-  // 1. User is Premium AND
-  // 2. Provider is 'premium' AND
-  // 3. Language supports Wavenet
-  const isEncoreMode = isUserPremium && effectiveProvider === "premium" && supportsWavenet;
+  const isEncoreMode = effectiveProvider === "premium" && supportsWavenet;
   if (isEncoreMode) {
     const variantRow = await buildVariantSelect(
       effectiveProvider,
       profile.language,
       profile.voiceId,
-      isUserPremium,
       locale,
     );
     rows.push(variantRow);
   }
 
-  // SPEED ROW: Always shown, but options differ by provider
-  // - Basic: Normal (1.0) or Slow (0.24)
-  // - Premium: Full range 0.25x to 4.0x
   const speedRow = buildSpeedSelect(profile.speed, isEncoreMode, locale);
   rows.push(speedRow);
 
-  // PITCH ROW: Only shown for Encore mode (Premium provider)
-  // Basic provider does NOT support pitch adjustment
   if (isEncoreMode) {
     const pitchRow = buildPitchSelect(profile.pitch, locale);
     rows.push(pitchRow);
@@ -599,51 +552,28 @@ export async function handleLanguageSelect(
   }
 
   // --- NORMAL SELECTION LOGIC ---
-  // User picked a real language (e.g., 'vi-VN')
   const selectedLanguage = selectedValue;
 
-  // Check user's premium status for auto-upgrade logic
-  const isUserPremium = isPremiumUser(userId);
-
-  // CAPABILITY CHECK: Does the NEW language support Wavenet?
   const supportsWavenet = await hasWavenetSupport(selectedLanguage);
 
-  // Build the update object
   const updates: { language: string; provider?: "basic" | "premium"; voiceId?: string | null } = {
     language: selectedLanguage,
   };
 
-  // AUTO-UPGRADE/DOWNGRADE LOGIC for Premium Users
-  // Premium users get automatic provider switching based on language capability
-  if (isUserPremium) {
-    if (supportsWavenet) {
-      // --- AUTO-UPGRADE: Language supports Wavenet ---
-      // Force provider to 'premium' regardless of previous state
-      // This ensures Premium users always get Encore when available
-      updates.provider = "premium";
-      
-      try {
-        const validVoices = await getWavenetVoicesByLanguage(selectedLanguage);
-
-        if (validVoices.length > 0) {
-          // Pick the first voice as safe default
-          updates.voiceId = validVoices[0]?.value || null;
-        } else {
-          // Edge case: hasWavenetSupport returned true but no voices (shouldn't happen)
-          updates.voiceId = null;
-        }
-      } catch (error) {
-        console.error("Failed to fetch voices for auto-select:", error);
-        // On error, clear the voice to prevent stale value
+  if (supportsWavenet) {
+    updates.provider = "premium";
+    try {
+      const validVoices = await getWavenetVoicesByLanguage(selectedLanguage);
+      if (validVoices.length > 0) {
+        updates.voiceId = validVoices[0]?.value || null;
+      } else {
         updates.voiceId = null;
       }
-    } else {
-      // --- AUTO-DOWNGRADE: Language doesn't support Wavenet ---
-      updates.provider = "basic";
+    } catch (error) {
+      console.error("Failed to fetch voices for auto-select:", error);
       updates.voiceId = null;
     }
   } else {
-    // Free User: Always Basic, clear any voice model
     updates.provider = "basic";
     updates.voiceId = null;
   }
@@ -689,15 +619,6 @@ export async function handleProviderSelect(
   if (!selectedProvider) {
     await interaction.reply({
       content: t(locale, "common.error"),
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  // SECURITY CHECK: Validate premium access on server side
-  if (selectedProvider === "premium" && !isPremiumUser(userId)) {
-    await interaction.reply({
-      content: t(locale, "commands.voice.config.encoreRequired"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -772,15 +693,6 @@ export async function handleVariantSelect(
   if (!selectedVariant || selectedVariant === "none") {
     await interaction.reply({
       content: t(locale, "common.error"),
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  // SECURITY CHECK: Validate premium access on server side
-  if (!isPremiumUser(userId)) {
-    await interaction.reply({
-      content: t(locale, "commands.voice.config.encoreRequired"),
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -887,16 +799,6 @@ export async function handlePitchSelect(
     return;
   }
 
-  // SECURITY CHECK: Pitch is only for Premium users
-  if (!isPremiumUser(userId)) {
-    await interaction.reply({
-      content: t(locale, "commands.voice.config.encoreRequired"),
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  // Parse the selected pitch value
   const pitch = parseFloat(selectedValue);
   if (isNaN(pitch)) {
     await interaction.reply({

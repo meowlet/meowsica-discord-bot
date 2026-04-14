@@ -10,7 +10,7 @@ services:
       - .env
     environment:
       - ENABLE_SHARDING=true
-      - SHARD_COUNT=3
+      - SHARD_COUNT=2
       - ENABLE_REDIS=true
       - REDIS_URL=redis://redis:6379
     networks:
@@ -21,10 +21,10 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 1400M
+          memory: 1000M
         reservations:
           cpus: '0.5'
-          memory: 600M
+          memory: 420M
     logging:
       driver: "json-file"
       options:

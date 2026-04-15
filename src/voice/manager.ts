@@ -7,6 +7,7 @@ import {
 } from "@discordjs/voice";
 import type { VoiceBasedChannel } from "discord.js";
 import { Timeouts, Defaults } from "../constants/index.ts";
+import { cleanupPlayer } from "../tts/player.ts";
 
 interface GuildVoiceState {
   connection: VoiceConnection;
@@ -25,12 +26,10 @@ const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
 function startTimeout(guildId: string): void {
   const state = guildStates.get(guildId);
   if (!state) return;
-
   if (state.timeoutTimer) {
     clearTimeout(state.timeoutTimer);
     state.timeoutTimer = null;
   }
-
   if (TIMEOUT_MS > 0) {
     state.timeoutTimer = setTimeout(() => {
       leaveChannel(guildId);
@@ -46,17 +45,14 @@ export async function joinChannel(
   channel: VoiceBasedChannel,
 ): Promise<VoiceConnection> {
   const guildId = channel.guild.id;
-
   const existingState = guildStates.get(guildId);
   if (existingState && existingState.channelId === channel.id) {
     resetTimeout(guildId);
     return existingState.connection;
   }
-
   if (existingState) {
     leaveChannel(guildId);
   }
-
   const connection = joinVoiceChannel({
     channelId: channel.id,
     guildId: guildId,
@@ -64,7 +60,6 @@ export async function joinChannel(
     selfDeaf: false,
     selfMute: false,
   });
-
   try {
     await entersState(
       connection,
@@ -75,17 +70,13 @@ export async function joinChannel(
     connection.destroy();
     throw new Error(`Failed to join voice channel: ${error}`);
   }
-
   const state: GuildVoiceState = {
     connection,
     channelId: channel.id,
     timeoutTimer: null,
   };
-
   guildStates.set(guildId, state);
-
   startTimeout(guildId);
-
   connection.on(VoiceConnectionStatus.Disconnected, async () => {
     try {
       await Promise.race([
@@ -104,23 +95,20 @@ export async function joinChannel(
       leaveChannel(guildId);
     }
   });
-
   connection.on(VoiceConnectionStatus.Destroyed, () => {
     cleanup(guildId);
   });
-
   return connection;
 }
 
 function cleanup(guildId: string): void {
   const state = guildStates.get(guildId);
   if (!state) return;
-
   if (state.timeoutTimer) {
     clearTimeout(state.timeoutTimer);
   }
-
   guildStates.delete(guildId);
+  cleanupPlayer(guildId);
 }
 
 export function leaveChannel(guildId: string): boolean {
@@ -130,6 +118,7 @@ export function leaveChannel(guildId: string): boolean {
     cleanup(guildId);
     return true;
   }
+  cleanup(guildId);
   return false;
 }
 

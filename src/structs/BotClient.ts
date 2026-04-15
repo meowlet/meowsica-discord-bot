@@ -2,6 +2,7 @@ import {
   Client,
   Collection,
   GatewayIntentBits,
+  Options,
   type ClientOptions,
 } from "discord.js";
 import type { BotConfig } from "../types/config.ts";
@@ -26,12 +27,29 @@ export class BotClient extends Client {
     const defaultIntents = [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildVoiceStates,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
     ];
 
     const clientOptions: ClientOptions = {
       intents: defaultIntents,
+      makeCache: Options.cacheWithLimits({
+        MessageManager: 0,
+        PresenceManager: 0,
+        ReactionManager: 0,
+        ReactionUserManager: 0,
+        GuildMemberManager: {
+          maxSize: 1,
+          keepOverLimit: (member) => member.id === member.client.user?.id,
+        },
+        ThreadManager: { maxSize: 0 },
+      }),
+      sweepers: {
+        ...Options.DefaultSweeperSettings,
+        messages: { interval: 600, lifetime: 60 },
+        users: {
+          interval: 3600,
+          filter: () => (user) => user.id !== user.client.user?.id,
+        },
+      },
     };
 
     if (options.clientOptions) {

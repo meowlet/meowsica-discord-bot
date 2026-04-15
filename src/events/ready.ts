@@ -3,12 +3,19 @@ import { botLogger } from "../utils/logger.ts";
 import { initializeVoiceCache } from "../services/GoogleTTSService.ts";
 import { initializeLoggerService } from "../services/LoggerService.ts";
 import { initializeUsageService } from "../services/UsageService.ts";
-import { initializeCacheService } from "../services/CacheService.ts";
+import { initializeCacheService, getCacheService } from "../services/CacheService.ts";
 import { getDatabase } from "../settings/db.ts";
 import {
   getPresence,
   initPresenceFromConfig,
 } from "../presence/store.ts";
+import { cleanupIdlePlayers, getActiveGuildCount } from "../tts/player.ts";
+
+const PRESENCE_INTERVAL_MS = 15 * 60 * 1000;
+const HOUSEKEEPING_INTERVAL_MS = 30 * 60 * 1000;
+
+let presenceTimer: ReturnType<typeof setInterval> | null = null;
+let housekeepingTimer: ReturnType<typeof setInterval> | null = null;
 
 export async function handleReady(client: BotClient): Promise<void> {
   if (!client.user) {
@@ -25,40 +32,31 @@ export async function handleReady(client: BotClient): Promise<void> {
     botLogger.warn("Failed to initialize voice cache:", error);
   });
   updatePresence(client);
-  setInterval(
-    () => {
-      updatePresence(client);
-    },
-    15 * 60 * 1000,
-  );
+  if (presenceTimer) clearInterval(presenceTimer);
+  presenceTimer = setInterval(() => {
+    updatePresence(client);
+  }, PRESENCE_INTERVAL_MS);
+  if (housekeepingTimer) clearInterval(housekeepingTimer);
+  housekeepingTimer = setInterval(() => {
+    runHousekeeping();
+  }, HOUSEKEEPING_INTERVAL_MS);
 }
 
-/**
- * Initialize all core services:
- * - LoggerService: Activity logging to separate DB
- * - UsageService: Quota tracking in main DB
- * - CacheService: Audio file caching
- */
 async function initializeServices(): Promise<void> {
   try {
-    // Initialize Logger Service (separate logs.sqlite)
     await initializeLoggerService();
     botLogger.info("LoggerService initialized");
   } catch (error) {
     botLogger.warn("Failed to initialize LoggerService:", error);
   }
-
   try {
-    // Initialize Usage Service (main DB)
     const db = getDatabase();
     initializeUsageService(db);
     botLogger.info("UsageService initialized");
   } catch (error) {
     botLogger.warn("Failed to initialize UsageService:", error);
   }
-
   try {
-    // Initialize Cache Service (file system)
     await initializeCacheService();
     botLogger.info("CacheService initialized");
   } catch (error) {
@@ -71,4 +69,21 @@ function updatePresence(client: BotClient): void {
   const presence = getPresence();
   if (!presence) return;
   client.user.setPresence(presence);
+}
+
+async function runHousekeeping(): Promise<void> {
+  try {
+    const idleCleaned = cleanupIdlePlayers();
+    if (idleCleaned > 0) {
+      botLogger.info(`[Housekeeping] Cleaned ${idleCleaned} idle players, ${getActiveGuildCount()} active`);
+    }
+    try {
+      const cacheService = getCacheService();
+      await cacheService.cleanup();
+    } catch {
+      // CacheService may not be initialized
+    }
+  } catch (error) {
+    botLogger.warn("[Housekeeping] Error:", error);
+  }
 }

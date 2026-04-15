@@ -160,10 +160,8 @@ async function playPayloadBasic(
   if (!response.ok) {
     throw new Error(`TTS request failed: ${response.status}`);
   }
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const stream = Readable.from(buffer);
-  const resource = createAudioResource(stream, {
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const resource = createAudioResource(Readable.from(buffer), {
     inputType: StreamType.Arbitrary,
   });
   connection.subscribe(state.player);
@@ -362,4 +360,25 @@ export function cleanupPlayer(guildId: string): void {
 export function isPlaying(guildId: string): boolean {
   const state = guildPlayers.get(guildId);
   return state?.isPlaying ?? false;
+}
+
+/** Returns the number of guilds with active player state (for monitoring). */
+export function getActiveGuildCount(): number {
+  return guildPlayers.size;
+}
+
+/**
+ * Remove idle player entries that have no active playback and empty queues.
+ * Prevents unbounded growth of the guildPlayers Map.
+ */
+export function cleanupIdlePlayers(): number {
+  let cleaned = 0;
+  for (const [guildId, state] of guildPlayers) {
+    if (!state.isPlaying && !state.currentItem && state.queue.length === 0) {
+      state.player.stop(true);
+      guildPlayers.delete(guildId);
+      cleaned++;
+    }
+  }
+  return cleaned;
 }

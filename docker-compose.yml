@@ -9,6 +9,7 @@ services:
     env_file:
       - .env
     environment:
+      - NODE_ENV=production
       - ENABLE_SHARDING=true
       - SHARD_COUNT=2
       - ENABLE_REDIS=true
@@ -20,10 +21,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 1000M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 420M
     logging:
       driver: "json-file"
@@ -50,10 +51,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 112M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 48M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -61,6 +62,39 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: meowsica-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    environment:
+      LOKI_URL: ${LOKI_URL}
+      LOKI_USER: ${LOKI_USER}
+      LOKI_TOKEN: ${LOKI_TOKEN}
+    networks:
+      - meowsica-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 48M
     logging:
       driver: "json-file"
       options:
@@ -76,3 +110,4 @@ volumes:
     driver: local
   bot-data:
     driver: local
+  alloy_data:

@@ -8,6 +8,7 @@ import {
 import type { VoiceBasedChannel } from "discord.js";
 import { Timeouts, Defaults } from "../constants/index.ts";
 import { cleanupPlayer } from "../tts/player.ts";
+import { voiceLogger } from "../utils/logger.ts";
 
 interface GuildVoiceState {
   connection: VoiceConnection;
@@ -77,6 +78,7 @@ export async function joinChannel(
   };
   guildStates.set(guildId, state);
   startTimeout(guildId);
+  voiceLogger.info("Joined voice channel", { channelId: channel.id, channelName: channel.name });
   connection.on(VoiceConnectionStatus.Disconnected, async () => {
     try {
       await Promise.race([
@@ -116,6 +118,7 @@ export function leaveChannel(guildId: string): boolean {
   if (connection) {
     connection.destroy();
     cleanup(guildId);
+    voiceLogger.info("Left voice channel");
     return true;
   }
   cleanup(guildId);

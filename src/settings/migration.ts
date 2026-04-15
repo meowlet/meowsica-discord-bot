@@ -16,6 +16,9 @@ import {
   type SubscriptionTier,
   type TTSProvider,
 } from "./schema.ts";
+import { logger } from "../utils/logger.ts";
+
+const migrationLogger = logger.withTag("MIGRATION");
 
 interface OldUserSettingsRow {
   user_id: string;
@@ -191,12 +194,12 @@ export function migrateToV2(db: Database): MigrationResult {
     db.run("COMMIT");
 
     result.success = true;
-    console.log(
-      `[Migration] Successfully migrated to schema v${SCHEMA_VERSION}. Users migrated: ${result.migratedUsers}`
+    migrationLogger.info(
+      `Successfully migrated to schema v${SCHEMA_VERSION}. Users migrated: ${result.migratedUsers}`
     );
 
     if (result.errors.length > 0) {
-      console.warn(`[Migration] Warnings:`, result.errors);
+      migrationLogger.warn(`Migration warnings:`, result.errors);
     }
   } catch (err) {
     // Rollback on any error
@@ -207,7 +210,7 @@ export function migrateToV2(db: Database): MigrationResult {
     const errorMessage =
       err instanceof Error ? err.message : String(err);
     result.errors.push(`Migration failed: ${errorMessage}`);
-    console.error(`[Migration] Failed:`, errorMessage);
+    migrationLogger.error(`Migration failed: ${errorMessage}`);
   }
 
   return result;
@@ -228,12 +231,12 @@ export function dropOldBackupTable(db: Database): boolean {
 
     if ((hasBackup?.count ?? 0) > 0) {
       db.run(`DROP TABLE user_settings_backup_v1`);
-      console.log("[Migration] Dropped backup table user_settings_backup_v1");
+      migrationLogger.info("Dropped backup table user_settings_backup_v1");
       return true;
     }
     return false;
   } catch (err) {
-    console.error("[Migration] Failed to drop backup table:", err);
+    migrationLogger.error("Failed to drop backup table:", err);
     return false;
   }
 }
@@ -267,6 +270,6 @@ export function initializeSchema(db: Database): void {
       [SCHEMA_VERSION]
     );
 
-    console.log(`[Database] Initialized with schema v${SCHEMA_VERSION}`);
+    migrationLogger.info(`Initialized with schema v${SCHEMA_VERSION}`);
   }
 }

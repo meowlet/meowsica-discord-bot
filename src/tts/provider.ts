@@ -124,7 +124,7 @@ const WAVENET_VOICE_MAP: Record<string, string> = {
 /**
  * Get the Wavenet voice name for a language code
  */
-function getWavenetVoice(languageCode: VoiceLanguageCode): string {
+export function getWavenetVoice(languageCode: VoiceLanguageCode): string {
   return WAVENET_VOICE_MAP[languageCode] || `${languageCode}-Standard-A`;
 }
 

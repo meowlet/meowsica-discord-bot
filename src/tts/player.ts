@@ -13,6 +13,7 @@ import {
   synthesizeWavenet,
   synthesizeWavenetCached,
   isWavenetAvailable,
+  getWavenetVoice,
   QuotaExceededError,
   type TTSPayload,
   type TTSProviderType,
@@ -280,6 +281,15 @@ export function queueTTS(
     voiceName: effectiveVoiceName,
     tuning,
   };
+  const resolvedModel = usePremium
+    ? (effectiveVoiceName ?? getWavenetVoice(language))
+    : undefined;
+  ttsLogger.info("TTS request", {
+    provider: providerLabel,
+    ...(resolvedModel && { model: resolvedModel }),
+    language,
+    chars: text.length,
+  });
   if (!state.isPlaying && !state.currentItem) {
     playItem(guildId, item);
     return {
@@ -293,6 +303,7 @@ export function queueTTS(
   }
   state.queue.push(item);
   const position = state.queue.length;
+  ttsLogger.debug("TTS queued", { position, queueLength: state.queue.length });
   return {
     queued: true,
     position,

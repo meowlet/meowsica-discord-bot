@@ -33,6 +33,7 @@ import {
   buildDashboardButtons,
   getLanguageFlag,
 } from "../commands/misc/voice.ts";
+import { voiceLogger } from "../utils/logger.ts";
 
 /**
  * Get user's locale preference
@@ -212,7 +213,7 @@ async function buildVariantSelect(
         });
       }
     } catch (error) {
-      console.error("Failed to fetch Wavenet voices:", error);
+      voiceLogger.error("Failed to fetch Wavenet voices:", error as Error);
     }
   }
 
@@ -497,7 +498,7 @@ export async function handleResetButton(
       components: [buttons],
     });
   } catch (error) {
-    console.error("Failed to update dashboard after reset:", error);
+    voiceLogger.error("Failed to update dashboard after reset:", error as Error);
   }
 }
 
@@ -570,7 +571,7 @@ export async function handleLanguageSelect(
         updates.voiceId = null;
       }
     } catch (error) {
-      console.error("Failed to fetch voices for auto-select:", error);
+      voiceLogger.error("Failed to fetch voices for auto-select:", error as Error);
       updates.voiceId = null;
     }
   } else {
@@ -650,7 +651,7 @@ export async function handleProviderSelect(
         updates.voiceId = null;
       }
     } catch (error) {
-      console.error("Failed to fetch voices for auto-select on provider change:", error);
+      voiceLogger.error("Failed to fetch voices for auto-select on provider change:", error as Error);
       // On error, clear the voice to prevent stale value
       updates.voiceId = null;
     }
@@ -874,7 +875,7 @@ export async function handleVoiceComponent(
       }
     }
   } catch (error) {
-    console.error(`Error handling voice component ${customId}:`, error);
+    voiceLogger.error(`Error handling voice component ${customId}:`, error as Error);
 
     // Attempt to reply with error
     try {

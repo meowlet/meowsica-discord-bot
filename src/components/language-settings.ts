@@ -28,6 +28,7 @@ import {
   buildLanguageDashboardButtons,
   getLocaleDisplay,
 } from "../commands/misc/language.ts";
+import { commandLogger } from "../utils/logger.ts";
 
 /**
  * Get user's locale preference
@@ -315,7 +316,7 @@ export async function handleLanguageComponent(
       }
     }
   } catch (error) {
-    console.error(`Error handling language component ${customId}:`, error);
+    commandLogger.error(`Error handling language component ${customId}:`, error as Error);
 
     // Attempt to reply with error
     try {

@@ -74,16 +74,24 @@ function updatePresence(client: BotClient): void {
 async function runHousekeeping(): Promise<void> {
   try {
     const idleCleaned = cleanupIdlePlayers();
+    const activeGuilds = getActiveGuildCount();
     if (idleCleaned > 0) {
-      botLogger.info(`[Housekeeping] Cleaned ${idleCleaned} idle players, ${getActiveGuildCount()} active`);
+      botLogger.info(`Housekeeping: cleaned ${idleCleaned} idle players, ${activeGuilds} active`);
     }
     try {
       const cacheService = getCacheService();
-      await cacheService.cleanup();
+      const [, stats] = await Promise.all([
+        cacheService.cleanup(),
+        cacheService.getStats(),
+      ]);
+      botLogger.info("Cache stats", {
+        totalFiles: stats.totalFiles,
+        totalSizeMB: stats.totalSizeMB,
+      });
     } catch {
       // CacheService may not be initialized
     }
   } catch (error) {
-    botLogger.warn("[Housekeeping] Error:", error);
+    botLogger.warn("Housekeeping error:", error);
   }
 }

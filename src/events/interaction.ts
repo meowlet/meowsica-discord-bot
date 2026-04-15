@@ -9,6 +9,7 @@ import {
 import type { BotClient } from "../structs/BotClient.ts";
 import { commands } from "../commands.ts";
 import { commandLogger } from "../utils/logger.ts";
+import { interactionContext, type InteractionContextStore } from "../utils/interaction-context.ts";
 import {
   isVoiceComponent,
   handleVoiceComponent,
@@ -25,26 +26,37 @@ import {
   type CommandLogStatus,
 } from "../services/LoggerService.ts";
 
-/**
- * Get user's locale preference (for non-command interactions)
- */
 function getUserLocale(userId: string): Locale {
   return getDbUserLocale(userId) || DEFAULT_LOCALE;
 }
 
 const commandMap = new Map(commands.map((cmd) => [cmd.data.name, cmd]));
 
+function buildContextStore(interaction: Interaction): InteractionContextStore {
+  return {
+    interactionId: interaction.id,
+    userId: interaction.user.id,
+    guildId: interaction.guild?.id,
+    command: interaction.isChatInputCommand() ? interaction.commandName : undefined,
+    shardId: interaction.guild?.shardId,
+    startedAt: Date.now(),
+  };
+}
+
 export async function handleInteraction(
   client: BotClient,
   interaction: Interaction,
 ): Promise<void> {
-  if (interaction.isChatInputCommand()) {
-    await handleCommand(client, interaction);
-  } else if (interaction.isAutocomplete()) {
-    await handleAutocomplete(interaction);
-  } else if (interaction.isButton() || interaction.isStringSelectMenu()) {
-    await handleComponent(interaction);
-  }
+  const store = buildContextStore(interaction);
+  await interactionContext.run(store, async () => {
+    if (interaction.isChatInputCommand()) {
+      await handleCommand(client, interaction);
+    } else if (interaction.isAutocomplete()) {
+      await handleAutocomplete(interaction);
+    } else if (interaction.isButton() || interaction.isStringSelectMenu()) {
+      await handleComponent(interaction);
+    }
+  });
 }
 
 async function handleCommand(

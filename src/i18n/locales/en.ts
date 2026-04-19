@@ -1,10 +1,10 @@
 export default {
   common: {
-    error: "Oops, something went wrong", // Tự nhiên hơn "An error occurred"
+    error: "Oops, something went wrong",
     errorRetry: "An error occurred. Please try again.",
     unknownCommand: "Unknown command!",
     commandError: "There was an error executing this command!",
-    success: "All set!", // Thay vì "Success" khô khan
+    success: "All set!",
     ok: "OK",
     gender: {
       male: "Male voice",
@@ -16,16 +16,16 @@ export default {
   commands: {
     ping: {
       name: "ping",
-      description: "Check how fast I'm responding", // Dễ hiểu hơn "Check bot latency"
+      description: "Check how fast I'm responding",
       pinging: "Pinging...",
       title: "Pong!",
-      subtitle: "Here's how fast we're connecting:", // Thân thiện hơn
+      subtitle: "Here's how fast we're connecting:",
       latency: "Latency",
       apiLatency: "API Latency",
     },
     help: {
       name: "help",
-      description: "See what I can do", // Ngắn gọn
+      description: "See what I can do",
       title: "Command List",
       subtitle: "Here's everything I can do for you:",
       categories: {
@@ -35,49 +35,26 @@ export default {
         misc: "Utility",
       },
     },
-    lang: {
-      name: "lang",
-      description: "Change my language",
-      option: "Pick a language",
-      noPermission:
-        "You'll need 'Manage Server' permission to tweak server settings.", // Dùng "You'll need" nghe nhẹ nhàng hơn "You need"
-      serverOnly: "This command works inside servers only.",
-      interface: {
-        description: "Set the interface language",
-        user: "Set your personal interface language",
-        server: "Set the server's interface language",
-        userSuccess: "Got it! Your interface is now in English.", // "Got it!" tạo cảm giác phản hồi nhanh
-        serverSuccess: "Done! Server interface is now set to English.",
-      },
-      speech: {
-        description: "Set the speaking/TTS language",
-        user: "Set your personal speaking language",
-        server: "Set the server's speaking language",
-        userSuccess: "Understood! I'll speak English for you now.",
-        serverSuccess: "Updated! I'll speak English for this server now.",
-      },
-    },
     join: {
       description: "Hop into your voice channel",
       serverOnly: "This works inside servers only.",
-      notInVoice: "Please join a voice channel first!", // Thêm "Please" hoặc dùng dấu ! để nhắc nhở nhẹ nhàng
+      notInVoice: "Please join a voice channel first!",
       success: "Joined!",
       joinedChannel: "Connected to **{channel}**",
-      failed: "Couldn't join the channel. Mind trying again?", // Hỏi lại người dùng thay vì chỉ báo lỗi
+      failed: "Couldn't join the channel. Mind trying again?",
     },
     leave: {
       description: "Leave the voice channel",
       serverOnly: "This works inside servers only.",
       notConnected: "I'm not in a voice channel right now.",
-      notInSameChannel:
-        "We need to be in the same voice channel for this.", // "We need" nghe gắn kết hơn
+      notInSameChannel: "We need to be in the same voice channel for this.",
       success: "Left channel",
       disconnected: "Disconnected from the voice channel.",
       failed: "Couldn't leave the channel.",
     },
     say: {
       description: "Read text out loud",
-      messageOption: "What should I say?", // Tự nhiên hơn "The message to speak"
+      messageOption: "What should I say?",
       messageOptionDesc: "The message to speak",
       langOption: "TTS Language (overrides your default)",
       serverOnly: "This works inside servers only.",
@@ -85,8 +62,7 @@ export default {
       notInSameChannel: "Come join my voice channel first.",
       emptyMessage: "You didn't type anything for me to say!",
       messageTooLong: "That's a bit too long! Max {max} characters, please.",
-      invalidLanguage:
-        "Unknown language code. Check `/voices` for the list.",
+      invalidLanguage: "Unknown language code. Check `/voice` for the list.",
       success: "Speaking",
       speaking: 'Saying: "{message}"',
       queued: 'Queued up: "{message}"',
@@ -111,49 +87,6 @@ export default {
       success: "Skipped",
       skipped: "Skipped the current message.",
     },
-    voices: {
-      description: "Tweak TTS voice settings",
-      title: "Available Languages",
-      subtitle:
-        "Used to change the default voice.",
-      pageInfo: "Page {current} of {total}",
-      totalLanguages: "{count} languages available",
-      usage: "For example, to make the bot speak Japanese.",
-      list: {
-        description: "List all supported languages",
-        pageOption: "Page number",
-      },
-      set: {
-        description: "Pick your preferred voice",
-        languageOption: "Pick a language",
-        variantOption: "Pick a Wavenet voice (Encore only)",
-        providerOption: "Basic (Free) or Encore (Wavenet)?",
-        success: "Voice Updated",
-        language: "Language",
-        provider: "Provider",
-        voice: "Model",
-        encoreRequired: "Encore Required",
-        encoreRequiredDesc:
-          "This is an Encore feature. You can keep using Basic (Google Translate) for free!", // Giải thích nhẹ nhàng hơn
-        invalidLanguage: "Invalid code. Please pick from the list.",
-      },
-      info: {
-        description: "Check your settings",
-        title: "Your Voice Settings",
-        status: "Status",
-        encoreActive: "Encore Active",
-        standard: "Free Tier",
-        language: "Language",
-        provider: "Provider",
-        model: "Model",
-        upgradeHint: "Unlock Wavenet voices with Encore!",
-      },
-      reset: {
-        description: "Reset to default settings",
-        success: "Settings Reset",
-        successDesc: "Back to basics! Your voice is set to default (Basic English).",
-      },
-    },
     queue: {
       description: "Check the playlist",
       serverOnly: "This works inside servers only.",
@@ -165,56 +98,19 @@ export default {
       moreItems: "...and {count} more",
       totalItems: "{count} message(s) waiting",
     },
-    encoreAdmin: {
-      description: "Manage Encore subscriptions",
-      noPermission: "You don't have permission for this.",
-      grant: {
-        description: "Give Encore to a user",
-        userOption: "Lucky user",
-        userOptionDesc: "The user to grant Encore to",
-        daysOption: "Days (leave empty for lifetime)",
-        daysOptionDesc: "Number of days (leave empty for lifetime)",
-        success: "Encore Granted",
-        grantedDays: "Gave **{user}** Encore for **{days} days**!",
-        grantedLifetime: "Gave **{user}** lifetime Encore! Wow!",
-      },
-      revoke: {
-        description: "Remove Encore from a user",
-        userOption: "User",
-        userOptionDesc: "The user to revoke Encore from",
-        success: "Encore Revoked",
-        revoked: "Removed Encore from **{user}**.",
-      },
-      check: {
-        description: "Check Encore status",
-        userOption: "User to check",
-        userOptionDesc: "The user to check",
-        title: "Encore Status",
-        user: "User",
-        status: "Status",
-        active: "Active",
-        inactive: "Inactive",
-        expired: "Expired",
-        expiresAt: "Expires",
-        lifetime: "Lifetime",
-      },
-    },
     voice: {
-      description: "Open dashboard",
+      description: "Open voice settings dashboard",
       dashboard: {
         title: "Voice Settings",
-        subtitle: "Customize how I sound for you", // Cá nhân hóa hơn
+        subtitle: "Customize how I sound for you",
         language: "Language",
         provider: "Provider",
         model: "Voice Model",
-        status: "Status",
+        speed: "Speed",
+        pitch: "Pitch",
         providerBasic: "Basic (Google Translate)",
-        providerEncore: "Encore (Google Wavenet)",
+        providerWavenet: "Wavenet (Google Cloud)",
         modelDefault: "Default",
-        statusFree: "Free Plan",
-        statusActive: "Encore Active",
-        statusLifetime: "Encore (Lifetime)",
-        upgradeHint: "Want better quality? Upgrade to Encore!",
       },
       buttons: {
         config: "Configure",
@@ -230,40 +126,36 @@ export default {
         backToTop: "Go Back",
         backToTopDesc: "Return to main list",
         providerPlaceholder: "Choose a provider...",
-        providerLocked: "Current: Basic",
-        providerBasicOnly: "Provider: Basic (Standard)",
+        providerBasicOnly: "Only Basic is available for this language",
         providerBasicLabel: "Basic (Google Translate)",
         providerBasicDesc: "Standard free TTS",
-        providerEncoreLabel: "Encore (Google Cloud)",
-        providerEncoreDesc: "Premium, lifelike Wavenet voices", // Mô tả hấp dẫn hơn
-        providerPremiumLabel: "Encore (Google Cloud)",
+        providerWavenetLabel: "Wavenet (Google Cloud)",
+        providerWavenetDesc: "Lifelike Wavenet voices",
         providerUpdated: "Provider set to {provider}",
-        encoreRequired: "This needs Encore. Upgrade to unlock Wavenet!",
         variantPlaceholder: "Choose a voice style...",
-        variantLockedPlaceholder: "Not available in Basic",
+        variantLockedPlaceholder: "Switch to Wavenet to pick a voice",
         variantNotAvailable: "Not Available",
-        variantRequiresEncore: "Wavenet voices require Encore",
-        variantBasicMode: "Switch to Encore to see variants",
+        variantBasicMode: "Switch to Wavenet to see voice variants",
         variantNoVoices: "No specific styles for this language",
         variantUpdated: "Voice style set to {variant}",
-        noWavenetForLanguage: "Encore voices aren't available for this language yet.",
-        // Speed settings
+        noWavenetForLanguage:
+          "Wavenet voices aren't available for this language yet.",
         speedPlaceholder: "Speaking speed...",
         speedUpdated: "Speed set to {speed}",
         speedNormal: "Normal",
         speedNormalDesc: "Standard speed",
         speedSlow: "Slow Mode",
-        speedSlowDesc: "Relaxed, clear pronunciation", // Nghe êm tai hơn
+        speedSlowDesc: "Relaxed, clear pronunciation",
         speed025x: "0.25x (Super Slow)",
         speed05x: "0.5x (Slow)",
         speed075x: "0.75x",
         speed10x: "1.0x (Normal)",
         speed125x: "1.25x",
         speed15x: "1.5x",
+        speed175x: "1.75x",
         speed20x: "2.0x (Fast)",
         speed30x: "3.0x",
         speed40x: "4.0x (Super Fast)",
-        // Pitch settings (Encore only)
         pitchPlaceholder: "Voice pitch...",
         pitchUpdated: "Pitch set to {pitch}",
         pitchDeep: "Deep / Low",
@@ -279,7 +171,7 @@ export default {
       },
       reset: {
         success: "Reset Complete",
-        successDesc: "I've reset your settings to default (Basic Vietnamese).",
+        successDesc: "Your voice settings are back to default.",
         notOwner: "Only the dashboard owner can do this.",
       },
     },
@@ -311,37 +203,31 @@ export default {
     },
     profile: {
       description: "Check your profile",
-      title: "User Profile",
-      status: {
-        encore: "Encore Active",
-        free: "Free Plan",
-        freeTrial: "Free Trial",
-      },
+      title: "Your Profile",
       fields: {
-        status: "Status",
         provider: "Provider",
         model: "Current Model",
-        expires: "Expires",
-        usage: "Monthly Encore Usage",
+        language: "Language",
+        speed: "Speed",
+        pitch: "Pitch",
+        usage: "Monthly Wavenet Usage",
       },
+      providerBasic: "Basic (Free)",
+      providerWavenet: "Wavenet",
       model: {
-        auto: "Auto (Standard)",
-      },
-      expires: {
-        lifetime: "Lifetime",
+        auto: "Auto (Default)",
       },
       usage: {
-        notApplicable: "N/A (Free Plan)",
+        notApplicable: "N/A (Basic Plan)",
+        format: "{used} / {limit} chars",
       },
-      freeTrialHint: "All free features will remain free forever! You're enjoying Encore for free until Feb 1, 2026!",
-      quotaExceeded: "Encore Quota Exceeded. You have used {used}/{limit} characters. Please wait until next month or use Basic.",
+      quotaExceeded:
+        "Wavenet quota exceeded. You have used {used}/{limit} characters this month. Switch to Basic or wait until next month.",
     },
   },
 
-  encore: {
-    badge: "Encore",
-    modeActive: "Using Wavenet voice",
-    expired: "Your Encore plan has ended.",
+  wavenet: {
+    badge: "Wavenet",
     notAvailable: "Wavenet voices aren't available right now.",
   },
 };

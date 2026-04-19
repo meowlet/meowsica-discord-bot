@@ -1,10 +1,10 @@
 export default {
   common: {
     error: "Chết, lỗi rồi",
-    errorRetry: " Lỗi rồi. Thử lại nhé!",
+    errorRetry: "Lỗi rồi. Thử lại nhé!",
     unknownCommand: "Chưa nghe lệnh này bao giờ!",
     commandError: "Lỗi rồi!",
-    success: "Ngon lành!", // Thay vì "Thành công" cứng nhắc
+    success: "Ngon lành!",
     ok: "OK",
     gender: {
       male: "Giọng nam",
@@ -26,36 +26,13 @@ export default {
     help: {
       name: "help",
       description: "Bot làm được những gì?",
-      title: "Danh sách các lệnh", // Nghe thân thiện hơn "Danh sách lệnh"
+      title: "Danh sách các lệnh",
       subtitle: "Danh sách các lệnh bao gồm:",
       categories: {
         voice: "Giọng nói",
         tts: "Đọc văn bản (TTS)",
         settings: "Cài đặt",
         misc: "Tiện ích linh tinh",
-      },
-    },
-    lang: {
-      name: "lang",
-      description: "Đổi ngôn ngữ cho bot",
-      option: "Chọn ngôn ngữ",
-      noPermission: "Phải có quyền 'Server Management' mới chỉnh được cái này nha.",
-      serverOnly: "Lệnh này chỉ dùng được trong server thôi.",
-      interface: {
-        description: "Chọn ngôn ngữ hiển thị",
-        user: "Chọn ngôn ngữ hiển thị cho riêng bạn",
-        server: "Chọn ngôn ngữ hiển thị cho cả server",
-        userSuccess: "Xong nhé! Giao diện bạn thấy giờ là Tiếng Việt.",
-        serverSuccess:
-          "Xong nhé! Giao diện server giờ là Tiếng Việt.",
-      },
-      speech: {
-        description: "Chọn ngôn ngữ giọng nói (TTS)",
-        user: "Chọn ngôn ngữ giọng nói cho riêng bạn",
-        server: "Chọn ngôn ngữ giọng nói cho cả server",
-        userSuccess: "Okela! Bot sẽ nói bằng Tiếng Việt.",
-        serverSuccess:
-          "Xong! Mặc định bot sẽ nói bằng Tiếng Việt trong server này.",
       },
     },
     join: {
@@ -69,9 +46,8 @@ export default {
     leave: {
       description: "Thoát kênh thoại",
       serverOnly: "Chỉ dùng trong server được thôi.",
-      notConnected: "Bot không chưa vào voice chat.",
-      notInSameChannel:
-        "Vào cùng voice chat với bot mới được.",
+      notConnected: "Bot chưa vào voice chat.",
+      notInSameChannel: "Vào cùng voice chat với bot mới được.",
       success: "Đã thoát",
       disconnected: "Đã thoát, bai bai!",
       failed: "Không thoát được.",
@@ -87,7 +63,7 @@ export default {
       emptyMessage: "Đọc không thấy gì! Nhập nội dung đi.",
       messageTooLong: "Dài quá rồi! Tối đa {max} ký tự thôi.",
       invalidLanguage:
-        "Mã ngôn ngữ lạ hoắc. Dùng `/voices` để xem danh sách nhé.",
+        "Mã ngôn ngữ lạ hoắc. Dùng `/voice` để xem danh sách nhé.",
       success: "Đang nói",
       speaking: 'Đang nói: "{message}"',
       queued: 'Đã xếp hàng: "{message}"',
@@ -112,50 +88,6 @@ export default {
       success: "Đã skip",
       skipped: "Đã skip câu đang nói.",
     },
-    voices: {
-      description: "Chỉnh giọng",
-      title: "Danh sách các ngôn ngữ dùng được",
-      subtitle:
-        "Dùng để chỉnh giọng nói mặc định.",
-      pageInfo: "Trang {current}/{total}",
-      totalLanguages: "Tổng cộng {count} ngôn ngữ dùng được",
-      usage:
-        "Ví dụ, cho bot nói tiếng Anh.",
-      list: {
-        description: "Xem danh sách các ngôn ngữ dùng được",
-        pageOption: "Số trang",
-      },
-      set: {
-        description: "Chọn giọng tủ của bạn",
-        languageOption: "Chọn tiếng",
-        variantOption: "Chọn chất giọng (chỉ Encore)",
-        providerOption: "Dùng Basic (Free) hay Encore (Wavenet)?",
-        success: "Đã cập nhật giọng",
-        language: "Ngôn ngữ",
-        provider: "Nguồn giọng",
-        voice: "Kiểu giọng",
-        encoreRequired: "Phải có Encore mới dùng được.",
-        encoreRequiredDesc:
-          "Tính năng này của Encore. Dùng Basic (Google Dịch) vẫn ngon mà!",
-        invalidLanguage: "Mã ngôn ngữ không đúng. Chọn trong danh sách gợi ý ấy.",
-      },
-      info: {
-        description: "Xem cài đặt hiện tại",
-        title: "Cài đặt giọng nói của bạn",
-        status: "Trạng thái",
-        encoreActive: "Encore đang dùng",
-        standard: "Free",
-        language: "Ngôn ngữ",
-        provider: "Nguồn giọng",
-        model: "Kiểu giọng",
-        upgradeHint: "Nâng cấp lên Encore để nghe giọng Wavenet thực hơn nhé!",
-      },
-      reset: {
-        description: "Về lại mặc định",
-        success: "Đã reset",
-        successDesc: "Cài đặt giọng nói reset (Basic Tiếng Việt).",
-      },
-    },
     queue: {
       description: "Xem danh sách đợi nói",
       serverOnly: "Chỉ dùng trong server được thôi.",
@@ -167,40 +99,6 @@ export default {
       moreItems: "...và {count} câu nữa",
       totalItems: "Tổng {count} câu trong hàng chờ",
     },
-    encoreAdmin: {
-      description: "Quản lý gói Encore",
-      noPermission: "Chỉ Admin mới dùng được lệnh này.",
-      grant: {
-        description: "Cấp Encore cho người dùng",
-        userOption: "Người được chọn",
-        userOptionDesc: "Người dùng được cấp Encore",
-        daysOption: "Số ngày (để trống là trọn đời)",
-        daysOptionDesc: "Số ngày (để trống cho vĩnh viễn)",
-        success: "Đã cấp Encore",
-        grantedDays: "Đã cấp cho **{user}** gói Encore trong **{days} ngày**!",
-        grantedLifetime: "Đã cấp **{user}** gói Encore trọn đời! Encore Unlimited!",
-      },
-      revoke: {
-        description: "Thu hồi Encore",
-        userOption: "Người bị thu hồi",
-        userOptionDesc: "Người dùng bị thu hồi Encore",
-        success: "Đã revoke",
-        revoked: "Đã cắt gói Encore của **{user}**.",
-      },
-      check: {
-        description: "Soi trạng thái Encore",
-        userOption: "Người cần soi",
-        userOptionDesc: "Người cần soi",
-        title: "Trạng thái Encore",
-        user: "Người dùng",
-        status: "Tình trạng",
-        active: "Đang dùng",
-        inactive: "Không dùng",
-        expired: "Đã hết hạn",
-        expiresAt: "Hết hạn ngày",
-        lifetime: "Trọn đời",
-      },
-    },
     voice: {
       description: "Mở menu chỉnh giọng",
       dashboard: {
@@ -209,14 +107,11 @@ export default {
         language: "Ngôn ngữ",
         provider: "Nguồn giọng",
         model: "Kiểu giọng",
-        status: "Trạng thái",
+        speed: "Tốc độ",
+        pitch: "Cao độ",
         providerBasic: "Basic (Google Dịch)",
-        providerEncore: "Encore (Google Wavenet)",
+        providerWavenet: "Wavenet (Google Cloud)",
         modelDefault: "Mặc định",
-        statusFree: "Dùng Free",
-        statusActive: "Encore Pro",
-        statusLifetime: "Encore (Trọn đời)",
-        upgradeHint: "Nâng cấp Encore để mở khóa giọng Wavenet xịn xò hơn!",
       },
       buttons: {
         config: "Cài đặt",
@@ -232,24 +127,19 @@ export default {
         backToTop: "Quay lại",
         backToTopDesc: "Về trang đầu",
         providerPlaceholder: "Chọn nguồn giọng...",
-        providerLocked: "Nguồn: Basic (Tiêu chuẩn)",
-        providerBasicOnly: "Nguồn: Basic (Tiêu chuẩn)",
+        providerBasicOnly: "Tiếng này chỉ có Basic thôi",
         providerBasicLabel: "Basic (Google Dịch)",
         providerBasicDesc: "Giọng chị Google (Free)",
-        providerEncoreLabel: "Encore (Google Cloud)",
-        providerEncoreDesc: "Giọng Wavenet xịn, nghe thực hơn",
-        providerPremiumLabel: "Encore (Google Cloud)",
+        providerWavenetLabel: "Wavenet (Google Cloud)",
+        providerWavenetDesc: "Giọng Wavenet xịn, nghe thực hơn",
         providerUpdated: "Đã đổi nguồn giọng sang {provider}",
-        encoreRequired: "Cần gói Encore mới dùng được. Nâng cấp đi bạn ơi!",
         variantPlaceholder: "Chọn chất giọng...",
-        variantLockedPlaceholder: "Chế độ Basic không có cái này",
+        variantLockedPlaceholder: "Chuyển sang Wavenet để chọn giọng",
         variantNotAvailable: "Không khả dụng",
-        variantRequiresEncore: "Cần Encore mới chọn được giọng Wavenet",
-        variantBasicMode: "Chuyển sang Encore để chọn chất giọng",
+        variantBasicMode: "Chuyển sang Wavenet để chọn chất giọng",
         variantNoVoices: "Ngôn ngữ này chưa có giọng nào khác",
         variantUpdated: "Đã đổi chất giọng thành {variant}",
-        noWavenetForLanguage: "Ngôn ngữ này chưa hỗ trợ giọng Encore.",
-        // Speed settings
+        noWavenetForLanguage: "Ngôn ngữ này chưa hỗ trợ giọng Wavenet.",
         speedPlaceholder: "Chọn tốc độ nói...",
         speedUpdated: "Đã chỉnh tốc độ thành {speed}",
         speedNormal: "Bình thường",
@@ -266,7 +156,6 @@ export default {
         speed20x: "2.0x (Nhanh)",
         speed30x: "3.0x",
         speed40x: "4.0x (Bắn rap)",
-        // Pitch settings (Encore only)
         pitchPlaceholder: "Chọn cao độ giọng...",
         pitchUpdated: "Đã chỉnh cao độ thành {pitch}",
         pitchDeep: "Trầm",
@@ -282,7 +171,7 @@ export default {
       },
       reset: {
         success: "Đã Reset",
-        successDesc: "Mọi cài đặt giọng của bạn đã về như cũ (Basic Tiếng Việt).",
+        successDesc: "Mọi cài đặt giọng của bạn đã về như cũ.",
         notOwner: "Người gọi menu này mới được bấm nút này.",
       },
     },
@@ -308,43 +197,38 @@ export default {
         serverPlaceholder: "Chọn ngôn ngữ cho cả server (Admin)...",
         userUpdated: "Đã set ngôn ngữ của bạn thành {language}!",
         serverUpdated: "Đã set ngôn ngữ của server thành {language}!",
-        noPermission: "Có quyền 'Server Management' mới chỉnh được cả server nha.",
+        noPermission:
+          "Có quyền 'Server Management' mới chỉnh được cả server nha.",
         serverOnly: "Lệnh này chỉ dùng được trong server thôi.",
       },
     },
     profile: {
-      description: "Xem profile giọng nói của bạn",
-      title: "Profile giọng nói",
-      status: {
-        encore: "Encore",
-        free: "Free",
-        freeTrial: "Dùng thử Encore",
-      },
+      description: "Xem profile của bạn",
+      title: "Profile của bạn",
       fields: {
-        status: "Trạng thái",
         provider: "Nguồn giọng",
         model: "Model hiện tại",
-        expires: "Ngày hết hạn Encore",
-        usage: "Lượng ký tự Encore tháng này",
+        language: "Ngôn ngữ",
+        speed: "Tốc độ",
+        pitch: "Cao độ",
+        usage: "Lượng ký tự Wavenet tháng này",
       },
+      providerBasic: "Basic (Free)",
+      providerWavenet: "Wavenet",
       model: {
         auto: "Tự động (Mặc định)",
       },
-      expires: {
-        lifetime: "Trọn đời",
-      },
       usage: {
-        notApplicable: "N/A (Dùng Free)",
+        notApplicable: "N/A (Đang dùng Basic)",
+        format: "{used} / {limit} ký tự",
       },
-      freeTrialHint: "Các tính năng trước giờ free thì vẫn sẽ MÃI MÃI FREE nhé! Bot đang mở dùng thử Encore đến 01/02/2026!",
-      quotaExceeded: "Hết quota Encore. Bạn đã dùng {used}/{limit} ký tự. Đợi tháng sau hoặc dùng tạm Basic nhé.",
+      quotaExceeded:
+        "Hết quota Wavenet. Bạn đã dùng {used}/{limit} ký tự tháng này. Chuyển sang Basic hoặc đợi tháng sau nhé.",
     },
   },
 
-  encore: {
-    badge: "Encore",
-    modeActive: "Đang dùng giọng Wavenet",
-    expired: "Gói Encore hết hạn mất rồi.",
+  wavenet: {
+    badge: "Wavenet",
     notAvailable: "Giọng Wavenet đang bảo trì.",
   },
 };

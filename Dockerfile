@@ -24,12 +24,13 @@ WORKDIR /app
 # Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy source code
+# Copy source code and migrations
 COPY package.json ./
 COPY src ./src
+COPY drizzle ./drizzle
 
-# Create data directory (will be mounted as volume or created at runtime)
-RUN mkdir -p data cache
+# Create cache directory (will be mounted as volume or created at runtime)
+RUN mkdir -p cache
 
 # Create non-root user for security
 RUN chown -R bun:bun /app

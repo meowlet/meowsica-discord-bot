@@ -16,12 +16,14 @@
     "@snazzah/davey": "^0.1.8",
     "@types/node": "^25.0.3",
     "discord.js": "^14.16.3",
+    "drizzle-orm": "^0.45.2",
     "glob": "^13.0.0",
     "sodium-native": "^5.0.10",
     "strip-comments": "^2.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "drizzle-kit": "^0.31.10",
     "prettier": "^3.7.4",
     "typescript": "^5.7.2"
   },

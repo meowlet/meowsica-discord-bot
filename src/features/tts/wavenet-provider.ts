@@ -2,7 +2,6 @@ import type { Logger } from "../../shared/logger.ts";
 import type { GoogleCloudTtsClient } from "../../infra/google-cloud-tts.ts";
 import type { UsageService } from "../quota/usage-service.ts";
 import type { TtsCacheService } from "./cache-service.ts";
-import { QuotaExceededError } from "../../shared/errors.ts";
 import {
   extractLanguageCodeFromVoice,
   getDefaultWavenetVoice,
@@ -89,5 +88,3 @@ export class WavenetTtsProvider {
     return { buffer, fromCache: false, voiceName };
   }
 }
-
-export { QuotaExceededError };

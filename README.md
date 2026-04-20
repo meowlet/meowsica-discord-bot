@@ -1,17 +1,15 @@
 # meowsica-discord-bot
 
-A Discord TTS bot running on bun with Wavenet voices, quota system, and Loki-friendly logging.
+To install dependencies:
 
-## Features
+```bash
+bun install
+```
 
-- Slash commands
-- Multi-language (en, vi)
-- Google Cloud Wavenet TTS
-- MultiTierCache (L1 LRU + L2 Redis)
-- Postgres via drizzle-orm
-- Per-user quota system
-- Sharding
+To run:
 
-## Version
+```bash
+bun run index.ts
+```
 
-2.0.0
+This project was created using `bun init` in bun v1.3.4. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

@@ -1,8 +1,45 @@
-FROM node:16-alpine
+# Build stage
+FROM oven/bun:1.2-alpine AS builder
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
-COPY dist ./dist
 
-CMD ["node", "dist/index.js"]
+# Copy package files and patches
+COPY package.json bun.lock* ./
+COPY patches ./patches
+
+# Install dependencies (patches are auto-applied by bun)
+RUN bun install --frozen-lockfile --production
+
+# Production stage
+FROM oven/bun:1.2-alpine AS production
+
+# Install minimal runtime dependencies for voice
+RUN apk add --no-cache \
+    libsodium \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy node_modules from builder
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy source code and migrations
+COPY package.json ./
+COPY src ./src
+COPY drizzle ./drizzle
+
+# Create cache directory (will be mounted as volume or created at runtime)
+RUN mkdir -p cache
+
+# Create non-root user for security
+RUN chown -R bun:bun /app
+
+USER bun
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD bun --version || exit 1
+
+# Start the bot
+CMD ["bun", "run", "src/index.ts"]

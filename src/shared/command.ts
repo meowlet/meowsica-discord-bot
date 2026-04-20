@@ -1,16 +1,28 @@
 import type {
+  ButtonInteraction,
   ChatInputCommandInteraction,
-  PermissionResolvable,
   SlashCommandBuilder,
-} from 'discord.js';
+  SlashCommandOptionsOnlyBuilder,
+  SlashCommandSubcommandsOnlyBuilder,
+  StringSelectMenuInteraction,
+} from "discord.js";
 
-export interface SlashCommand {
-  readonly data: SlashCommandBuilder;
-  readonly requiredPermissions?: PermissionResolvable[];
+export type CommandData =
+  | SlashCommandBuilder
+  | SlashCommandOptionsOnlyBuilder
+  | SlashCommandSubcommandsOnlyBuilder;
+
+export interface Command {
+  readonly data: CommandData;
+  readonly selfLog?: boolean;
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
 }
 
+export type ComponentInteraction =
+  | ButtonInteraction
+  | StringSelectMenuInteraction;
+
 export interface ComponentHandler {
-  readonly customIdPrefix: string;
-  handle(interaction: unknown): Promise<void>;
+  matches(customId: string): boolean;
+  handle(interaction: ComponentInteraction): Promise<void>;
 }

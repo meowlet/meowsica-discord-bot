@@ -1,4 +1,6 @@
-// shard entry — re-exported by bootstrap
-import { runShard } from './bootstrap/start';
+import { start } from "./bootstrap/start.ts";
 
-export { runShard };
+start().catch((err) => {
+  console.error("fatal: bot worker failed to start", err);
+  process.exit(1);
+});

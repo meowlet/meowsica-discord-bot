@@ -2,6 +2,12 @@ services:
   bot:
     build: .
     container_name: meowsica-bot
+    command:
+      [
+        "sh",
+        "-lc",
+        "bun run deploy || echo 'deploy failed, continuing startup'; bun run start",
+      ]
     restart: always
     depends_on:
       redis:

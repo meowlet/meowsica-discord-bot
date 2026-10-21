@@ -89,11 +89,6 @@ export class WavenetVoiceCatalog {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async hasWavenetSupport(languageCode: string): Promise<boolean> {
-    const voices = await this.getVoicesForLanguage(languageCode);
-    return voices.length > 0;
-  }
-
   private async fetchAndCache(): Promise<readonly GoogleVoice[]> {
     if (!this.client) return [];
     const all = await this.client.listVoices();

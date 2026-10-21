@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "../../infra/db.ts";
-import { userUsage, type UserUsageRow } from "./schema.ts";
+import { userUsage } from "./schema.ts";
 
 export interface UsageSnapshot {
   readonly charsUsed: number;
@@ -72,15 +72,6 @@ export class UsageRepository {
         target: [userUsage.userId, userUsage.period],
         set: { charsUsed: 0, updatedAt: sql`NOW()` },
       });
-  }
-
-  async getHistory(userId: string, months: number): Promise<UserUsageRow[]> {
-    return this.db
-      .select()
-      .from(userUsage)
-      .where(eq(userUsage.userId, userId))
-      .orderBy(sql`${userUsage.period} DESC`)
-      .limit(months);
   }
 }
 

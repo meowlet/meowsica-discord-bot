@@ -84,13 +84,3 @@ function interpolate(template: string, params: TranslateParams): string {
     return String(params[key]);
   });
 }
-
-export type Translator = (
-  path: TranslationKey | (string & {}),
-  params?: TranslateParams,
-) => string;
-
-export function createTranslator(locale: Locale | string): Translator {
-  return (path, params) => t(locale, path, params);
-}
-

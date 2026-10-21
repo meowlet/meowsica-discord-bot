@@ -129,17 +129,13 @@ export class GoogleCloudTtsClient {
       });
       if (!response.ok) {
         const text = await safeReadText(response);
-        this.logger.error(
-          `${opts.label} failed: ${response.status} - ${text}`,
-        );
+        this.logger.error(`${opts.label} failed: ${response.status} - ${text}`);
         return null;
       }
       return await opts.parse(response);
     } catch (err) {
       if (isAbortError(err)) {
-        this.logger.error(
-          `${opts.label} timed out after ${opts.timeoutMs}ms`,
-        );
+        this.logger.error(`${opts.label} timed out after ${opts.timeoutMs}ms`);
       } else {
         this.logger.error(`${opts.label} threw`, err);
       }

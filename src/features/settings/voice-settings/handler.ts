@@ -12,7 +12,7 @@ import type {
 import type { LocaleResolver } from "../locale-resolver.ts";
 import type { UserPrefsRepository } from "../user-prefs-repo.ts";
 import type { WavenetVoiceCatalog } from "../../tts/voice-catalog.ts";
-import type { TtsProvider } from "../../tts/types.ts";
+import { DEFAULT_USER_TTS_PROFILE, type TtsProvider } from "../../tts/types.ts";
 import {
   buildVoiceDashboardButtons,
   buildVoiceDashboardEmbed,
@@ -123,10 +123,10 @@ export class VoiceSettingsHandler implements ComponentHandler {
     }
     const userId = ownerId;
     await this.userPrefs.upsertFields(userId, {
-      ttsProvider: "basic",
-      ttsVoiceId: null,
-      ttsSpeed: 1.0,
-      ttsPitch: 0.0,
+      ttsProvider: DEFAULT_USER_TTS_PROFILE.provider,
+      ttsVoiceId: DEFAULT_USER_TTS_PROFILE.voiceId,
+      ttsSpeed: DEFAULT_USER_TTS_PROFILE.speed,
+      ttsPitch: DEFAULT_USER_TTS_PROFILE.pitch,
     });
     const refreshed = await this.userPrefs.getOrDefault(userId);
     const embed = buildVoiceDashboardEmbed(refreshed, locale);

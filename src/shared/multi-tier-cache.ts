@@ -56,14 +56,6 @@ export class MultiTierCache<T> {
     await this.deleteRedis(key);
   }
 
-  invalidateMemory(key: string): void {
-    this.memory.delete(key);
-  }
-
-  clearMemory(): void {
-    this.memory.clear();
-  }
-
   private readMemory(key: string): T | null | undefined {
     const entry = this.memory.get(key);
     if (!entry) return undefined;
@@ -98,11 +90,7 @@ export class MultiTierCache<T> {
   private async writeRedis(key: string, value: T | null): Promise<void> {
     if (!this.redis?.isConnected()) return;
     const payload = value ?? NEGATIVE_MARKER;
-    await this.redis.setJson(
-      this.redisKey(key),
-      payload,
-      this.redisTtlSeconds,
-    );
+    await this.redis.setJson(this.redisKey(key), payload, this.redisTtlSeconds);
   }
 
   private async deleteRedis(key: string): Promise<void> {

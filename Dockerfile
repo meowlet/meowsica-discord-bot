@@ -37,9 +37,5 @@ RUN chown -R bun:bun /app
 
 USER bun
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD bun --version || exit 1
-
 # Start the bot
 CMD ["bun", "run", "src/index.ts"]

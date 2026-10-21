@@ -80,10 +80,6 @@ export class UserPrefsRepository {
     await this.upsert(userId, { ttsPitch: pitch });
   }
 
-  async resetTuning(userId: string): Promise<void> {
-    await this.upsert(userId, { ttsSpeed: 1.0, ttsPitch: 0.0 });
-  }
-
   async upsertFields(userId: string, fields: UserPrefsFields): Promise<void> {
     if (Object.keys(fields).length === 0) return;
     await this.upsert(userId, fields);

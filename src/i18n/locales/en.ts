@@ -71,6 +71,8 @@ const messages: MessagesShape = {
         "The queue is full ({max} messages). Please wait until some finish.",
       rateLimited: "Slow down a bit! Try again in {seconds}s.",
       joinFailed: "Couldn't join your voice channel.",
+      quotaFallback:
+        "You've hit your Wavenet quota this month, so I'll use the Basic (free) voice for this one.",
     },
     stop: {
       name: "stop",
@@ -307,6 +309,7 @@ interface MessagesShape {
       queueFull: string;
       rateLimited: string;
       joinFailed: string;
+      quotaFallback: string;
     };
     stop: {
       name: string;

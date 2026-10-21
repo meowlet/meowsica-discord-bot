@@ -17,6 +17,7 @@ export async function closeAppContext(
   await runStep(ctx, "flush command logs", () =>
     ctx.commandLogger.flush(flushTimeout),
   );
+  runStepSync(ctx, "stop command logger", () => ctx.commandLogger.shutdown());
   if (destroyClient) {
     await runStep(ctx, "destroy discord client", () => ctx.client.destroy());
   }
@@ -36,11 +37,7 @@ async function runStep(
   }
 }
 
-function runStepSync(
-  ctx: AppContext,
-  label: string,
-  fn: () => unknown,
-): void {
+function runStepSync(ctx: AppContext, label: string, fn: () => unknown): void {
   try {
     fn();
   } catch (err) {

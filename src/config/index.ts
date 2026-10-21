@@ -8,14 +8,12 @@ export interface BotConfig {
   readonly token: string;
   readonly clientId: string;
   readonly guildId?: string;
-  readonly ownerId?: string;
   readonly googleCloudApiKey?: string;
   readonly voiceTimeoutMinutes: number;
   readonly monthlyQuotaLimit: number;
   readonly presence: PresenceConfig;
   readonly nodeEnv: "development" | "production";
   readonly logLevel: "error" | "warn" | "info" | "debug";
-  readonly debug: boolean;
 }
 
 export interface RedisConfig {
@@ -96,14 +94,12 @@ function loadBotConfig(): BotConfig {
     token: requireEnv("DISCORD_TOKEN"),
     clientId: requireEnv("DISCORD_CLIENT_ID"),
     guildId: Bun.env["DISCORD_GUILD_ID"] || undefined,
-    ownerId: Bun.env["OWNER_ID"] || undefined,
     googleCloudApiKey: Bun.env["GOOGLE_CLOUD_API_KEY"] || undefined,
     voiceTimeoutMinutes: readInt("VOICE_TIMEOUT_MINUTES", 5),
     monthlyQuotaLimit: readInt("MONTHLY_QUOTA_LIMIT", 100_000),
     presence: loadPresenceConfig(),
     nodeEnv,
     logLevel,
-    debug: readBool("DEBUG", false),
   };
 }
 

@@ -72,6 +72,8 @@ const messages: Messages = {
       queueFull: "Hàng chờ đầy rồi ({max} câu). Đợi bớt chút đã.",
       rateLimited: "Chậm chậm thôi! Thử lại sau {seconds}s nhé.",
       joinFailed: "Không vào được voice chat.",
+      quotaFallback:
+        "Bạn đã hết quota Wavenet tháng này, mình dùng giọng Basic (miễn phí) cho câu này nhé.",
     },
     stop: {
       name: "stop",

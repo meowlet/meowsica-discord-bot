@@ -30,32 +30,38 @@ export class UsageService {
     this.monthlyLimit = deps.monthlyLimit;
   }
 
-  getLimit(): number {
-    return this.monthlyLimit;
-  }
-
   async getUsage(userId: string): Promise<UsageInfo> {
     const snapshot = await this.repo.getCurrent(userId);
     return this.toInfo(snapshot.charsUsed, snapshot.period);
   }
 
-  async assertCanUse(userId: string, charsToAdd: number): Promise<void> {
+  async hasRemaining(userId: string): Promise<boolean> {
     const info = await this.getUsage(userId);
-    if (info.charsUsed + charsToAdd > this.monthlyLimit) {
-      throw new QuotaExceededError(
-        info.charsUsed,
-        this.monthlyLimit,
-        nextPeriod(info.period),
-      );
-    }
+    return info.charsUsed < this.monthlyLimit;
   }
 
-  async assertAndReserve(userId: string, chars: number): Promise<void> {
+  // Allows a single reservation to overshoot the limit as long as some quota
+  // is left before it, so a message is never cut short mid-sentence.
+  async reserveWithinLimit(userId: string, chars: number): Promise<void> {
     if (chars <= 0) return;
     await this.withUserLock(userId, async () => {
-      await this.assertCanUse(userId, chars);
+      const info = await this.getUsage(userId);
+      if (info.charsUsed >= this.monthlyLimit) {
+        throw new QuotaExceededError(
+          info.charsUsed,
+          this.monthlyLimit,
+          nextPeriod(info.period),
+        );
+      }
       await this.repo.incrementCurrent(userId, chars);
     });
+  }
+
+  async reserve(userId: string, chars: number): Promise<void> {
+    if (chars <= 0) return;
+    await this.withUserLock(userId, () =>
+      this.repo.incrementCurrent(userId, chars),
+    );
   }
 
   async releaseReservation(userId: string, chars: number): Promise<void> {
@@ -63,10 +69,6 @@ export class UsageService {
     await this.withUserLock(userId, () =>
       this.repo.decrementCurrent(userId, chars),
     );
-  }
-
-  async recordUsage(userId: string, charsAdded: number): Promise<void> {
-    await this.repo.incrementCurrent(userId, charsAdded);
   }
 
   async resetUsage(userId: string): Promise<void> {

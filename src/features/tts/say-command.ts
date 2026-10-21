@@ -99,7 +99,10 @@ export class SayCommand implements Command {
     }
     const throttle = this.player.tryAcquireThrottle(interaction.user.id);
     if (!throttle.ok) {
-      const seconds = Math.max(1, Math.ceil((throttle.retryAfterMs ?? 0) / 1000));
+      const seconds = Math.max(
+        1,
+        Math.ceil((throttle.retryAfterMs ?? 0) / 1000),
+      );
       await interaction.reply({
         content: t(locale, "commands.say.rateLimited", { seconds }),
         flags: MessageFlags.Ephemeral,
@@ -134,6 +137,17 @@ export class SayCommand implements Command {
         embeds: [embed],
         allowedMentions: { parse: [] },
       });
+      if (result.quotaFallback) {
+        await interaction
+          .followUp({
+            content: t(locale, "commands.say.quotaFallback"),
+            flags: MessageFlags.Ephemeral,
+            allowedMentions: { parse: [] },
+          })
+          .catch(() => {
+            // noop
+          });
+      }
       this.commandLogger.log(
         this.commandLogger.fromInteraction(
           interaction,

@@ -55,11 +55,7 @@ interface ShutdownState {
   crashing: boolean;
 }
 
-function safeExit(
-  ctx: AppContext,
-  state: ShutdownState,
-  code: number,
-): void {
+function safeExit(ctx: AppContext, state: ShutdownState, code: number): void {
   if (state.crashing || state.shuttingDown) return;
   state.crashing = true;
   const forceExit = setTimeout(() => process.exit(code), FATAL_EXIT_TIMEOUT_MS);

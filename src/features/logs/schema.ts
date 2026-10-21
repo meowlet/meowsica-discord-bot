@@ -1,5 +1,4 @@
 import {
-  pgSchema,
   text,
   bigint,
   timestamp,
@@ -7,8 +6,7 @@ import {
   pgEnum,
   index,
 } from "drizzle-orm/pg-core";
-
-export const logsSchema = pgSchema("logs");
+import { logsSchema } from "../../infra/schemas.ts";
 
 export const commandLogStatusEnum = pgEnum("command_log_status", [
   "success",

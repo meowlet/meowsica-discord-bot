@@ -105,7 +105,9 @@ export class CommandLoggerService {
     }
     const member = interaction.member;
     const displayName =
-      member && "displayName" in member && typeof member.displayName === "string"
+      member &&
+      "displayName" in member &&
+      typeof member.displayName === "string"
         ? member.displayName
         : member && "nickname" in member && typeof member.nickname === "string"
           ? member.nickname

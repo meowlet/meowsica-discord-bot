@@ -69,9 +69,7 @@ export async function buildVoiceConfigInterface(
     buildProviderSelect(effectiveProvider, supportsWavenet, locale),
   ];
   if (isWavenetMode) {
-    rows.push(
-      buildVariantSelect(wavenetVoices, prefs.tts.voiceId, locale),
-    );
+    rows.push(buildVariantSelect(wavenetVoices, prefs.tts.voiceId, locale));
   }
   rows.push(buildSpeedSelect(prefs.tts.speed, isWavenetMode, locale));
   if (isWavenetMode) {

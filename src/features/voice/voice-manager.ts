@@ -132,7 +132,10 @@ export class VoiceManager {
   private assertChannelJoinable(channel: VoiceBasedChannel): void {
     const me = channel.guild.members.me;
     const perms = me ? channel.permissionsFor(me) : null;
-    if (!channel.joinable || (perms && !perms.has(PermissionFlagsBits.Connect))) {
+    if (
+      !channel.joinable ||
+      (perms && !perms.has(PermissionFlagsBits.Connect))
+    ) {
       throw new VoiceJoinError(
         "not_joinable",
         `bot lacks Connect permission in #${channel.name}`,

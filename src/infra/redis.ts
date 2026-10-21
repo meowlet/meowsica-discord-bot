@@ -1,6 +1,8 @@
 import { RedisClient as BunRedisClient } from "bun";
 import type { Logger } from "../shared/logger.ts";
 
+const REDIS_CONNECT_TIMEOUT_MS = 5_000;
+
 export interface RedisClientDeps {
   readonly url: string;
   readonly logger: Logger;
@@ -10,7 +12,6 @@ export class RedisClient {
   private readonly url: string;
   private readonly logger: Logger;
   private client: BunRedisClient | null = null;
-  private connected = false;
 
   constructor(deps: RedisClientDeps) {
     this.url = deps.url;
@@ -19,18 +20,31 @@ export class RedisClient {
 
   async connect(): Promise<void> {
     if (this.client) return;
-    this.client = new BunRedisClient(this.url, {
+    const client = new BunRedisClient(this.url, {
       autoReconnect: true,
       maxRetries: 5,
       enableOfflineQueue: true,
       connectionTimeout: 5_000,
     });
-    this.connected = true;
-    this.logger.info("Redis client ready (lazy connect)");
+    const pending = client.connect();
+    try {
+      await withTimeout(pending, REDIS_CONNECT_TIMEOUT_MS);
+    } catch (err) {
+      // Avoid an unhandled rejection if the connection settles after we bail.
+      pending.catch(() => {});
+      try {
+        client.close();
+      } catch {
+        // noop
+      }
+      throw err;
+    }
+    this.client = client;
+    this.logger.info("Redis connected");
   }
 
   isConnected(): boolean {
-    return this.connected && this.client !== null;
+    return this.client?.connected ?? false;
   }
 
   disconnect(): void {
@@ -41,7 +55,6 @@ export class RedisClient {
       this.logger.warn("Error closing Redis", err);
     }
     this.client = null;
-    this.connected = false;
   }
 
   async getJson<T>(key: string): Promise<T | null> {
@@ -92,5 +105,23 @@ export class RedisClient {
     } catch {
       return false;
     }
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`redis connect timed out after ${ms}ms`)),
+          ms,
+        );
+        if (timer && typeof timer.unref === "function") timer.unref();
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }

@@ -1,14 +1,6 @@
 import { sql } from "drizzle-orm";
-import {
-  pgSchema,
-  text,
-  real,
-  timestamp,
-  check,
-  pgEnum,
-} from "drizzle-orm/pg-core";
-
-export const appSchema = pgSchema("app");
+import { text, real, timestamp, check, pgEnum } from "drizzle-orm/pg-core";
+import { appSchema } from "../../infra/schemas.ts";
 
 export const ttsProviderEnum = pgEnum("tts_provider", ["basic", "wavenet"]);
 

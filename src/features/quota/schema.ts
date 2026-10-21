@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm";
 import {
-  pgSchema,
   text,
   integer,
   date,
@@ -9,8 +8,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-
-const appSchema = pgSchema("app");
+import { appSchema } from "../../infra/schemas.ts";
 
 export const userUsage = appSchema.table(
   "user_usage",

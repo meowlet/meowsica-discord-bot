@@ -10,6 +10,7 @@ import { Readable } from "node:stream";
 import type { Logger } from "../../shared/logger.ts";
 import { QuotaExceededError } from "../../shared/errors.ts";
 import type { UserPrefsRepository } from "../settings/user-prefs-repo.ts";
+import type { UsageService } from "../quota/usage-service.ts";
 import type { VoiceManager } from "../voice/voice-manager.ts";
 import type { BasicTtsProvider } from "./basic-provider.ts";
 import type { WavenetTtsProvider } from "./wavenet-provider.ts";
@@ -20,9 +21,12 @@ const MAX_QUEUE_SIZE_PER_GUILD = 20;
 const USER_THROTTLE_MS = 2_000;
 const THROTTLE_CLEANUP_INTERVAL_MS = 5 * 60_000;
 
+export type WavenetQuotaState = "pending" | "approved" | "denied";
+
 export interface QueueItem {
   readonly payloads: TtsPayload[];
   currentIndex: number;
+  wavenetQuota: WavenetQuotaState;
   readonly userId: string;
   readonly originalText: string;
   readonly provider: TtsProvider;
@@ -45,6 +49,7 @@ export interface QueueResult {
   readonly provider: TtsProvider;
   readonly providerLabel: string;
   readonly modelLabel: string;
+  readonly quotaFallback?: boolean;
   readonly rejection?: QueueRejection;
 }
 
@@ -63,6 +68,7 @@ export interface QueueParams {
 export interface PlayerManagerDeps {
   readonly logger: Logger;
   readonly userPrefs: UserPrefsRepository;
+  readonly usage: UsageService;
   readonly basic: BasicTtsProvider;
   readonly wavenet: WavenetTtsProvider;
   readonly voice: VoiceManager;
@@ -73,6 +79,7 @@ export interface PlayerManagerDeps {
 export class PlayerManager {
   private readonly logger: Logger;
   private readonly userPrefs: UserPrefsRepository;
+  private readonly usage: UsageService;
   private readonly basic: BasicTtsProvider;
   private readonly wavenet: WavenetTtsProvider;
   private readonly voice: VoiceManager;
@@ -85,6 +92,7 @@ export class PlayerManager {
   constructor(deps: PlayerManagerDeps) {
     this.logger = deps.logger.withTag("PLAYER");
     this.userPrefs = deps.userPrefs;
+    this.usage = deps.usage;
     this.basic = deps.basic;
     this.wavenet = deps.wavenet;
     this.voice = deps.voice;
@@ -101,8 +109,11 @@ export class PlayerManager {
 
   async queue(params: QueueParams): Promise<QueueResult> {
     const prefs = await this.userPrefs.getOrDefault(params.userId);
-    const useWavenet =
+    const wantsWavenet =
       this.wavenet.isAvailable() && prefs.tts.provider === "wavenet";
+    const quotaFallback =
+      wantsWavenet && !(await this.usage.hasRemaining(params.userId));
+    const useWavenet = wantsWavenet && !quotaFallback;
     const provider: TtsProvider = useWavenet ? "wavenet" : "basic";
     const voiceId = useWavenet
       ? this.wavenet.resolveVoice(params.language, prefs.tts.voiceId)
@@ -114,7 +125,7 @@ export class PlayerManager {
       provider,
       voiceId,
     });
-    const providerLabel = useWavenet ? "Wavenet" : "Basic";
+    const providerLabel = provider === "wavenet" ? "Wavenet" : "Basic";
     const modelLabel = voiceId ?? "N/A";
     if (payloads.length === 0) return this.rejection("empty_payload");
     const state = this.getOrCreateState(params.guildId);
@@ -124,6 +135,7 @@ export class PlayerManager {
     const item: QueueItem = {
       payloads,
       currentIndex: 0,
+      wavenetQuota: "pending",
       userId: params.userId,
       originalText: params.text,
       provider,
@@ -134,6 +146,7 @@ export class PlayerManager {
       ...(voiceId && { model: voiceId }),
       language: params.language,
       chars: params.text.length,
+      ...(quotaFallback && { quotaFallback: true }),
     });
     this.voice.resetTimeout(params.guildId);
     if (!state.isPlaying && !state.currentItem && !state.starting) {
@@ -145,6 +158,7 @@ export class PlayerManager {
         provider,
         providerLabel,
         modelLabel,
+        quotaFallback,
       };
     }
     state.queue.push(item);
@@ -154,6 +168,7 @@ export class PlayerManager {
       provider,
       providerLabel,
       modelLabel,
+      quotaFallback,
     };
   }
 
@@ -311,7 +326,7 @@ export class PlayerManager {
       current.currentIndex++;
       const nextPayload = current.payloads[current.currentIndex];
       if (nextPayload) {
-        this.playPayload(guildId, nextPayload, current.userId).catch((err) =>
+        this.playPayload(guildId, current, nextPayload).catch((err) =>
           this.handlePlaybackError(guildId, current.userId, err),
         );
       }
@@ -338,7 +353,7 @@ export class PlayerManager {
       state.starting = false;
       return;
     }
-    this.playPayload(guildId, first, item.userId)
+    this.playPayload(guildId, item, first)
       .catch((err) => this.handlePlaybackError(guildId, item.userId, err))
       .finally(() => {
         const refreshed = this.players.get(guildId);
@@ -348,44 +363,79 @@ export class PlayerManager {
 
   private async playPayload(
     guildId: string,
+    item: QueueItem,
     payload: TtsPayload,
-    userId: string,
   ): Promise<void> {
+    const userId = item.userId;
     const state = this.players.get(guildId);
     if (!state) return;
+    if (!getVoiceConnection(guildId)) {
+      this.handlePlaybackError(
+        guildId,
+        userId,
+        new Error(`no voice connection for guild ${guildId}`),
+      );
+      return;
+    }
     try {
-      if (payload.provider === "wavenet") {
-        const ok = await this.playWavenet(guildId, payload, state, userId);
-        if (!ok) {
-          this.logger.warn("wavenet failed, falling back to basic");
-          await this.playBasic(guildId, payload, state);
-        }
-        return;
+      if (payload.provider === "wavenet" && item.wavenetQuota !== "denied") {
+        const ok = await this.playWavenet(guildId, item, payload, state);
+        if (ok) return;
+        this.logger.warn("wavenet failed, falling back to basic");
       }
-      await this.playBasic(guildId, payload, state);
+      const started = await this.playBasic(guildId, payload, state);
+      if (!started) {
+        this.logger.warn(
+          `no audio started for guild ${guildId}; skipping payload`,
+        );
+        this.handleIdle(guildId);
+      }
     } catch (err) {
-      if (err instanceof QuotaExceededError) throw err;
-      this.logger.error("failed to play payload", err);
-      this.handleIdle(guildId);
+      this.handlePlaybackError(guildId, userId, err);
     }
   }
 
   private async playWavenet(
     guildId: string,
+    item: QueueItem,
     payload: TtsPayload,
     state: GuildPlayerState,
-    userId: string,
   ): Promise<boolean> {
-    const result = await this.wavenet.synthesize({
-      text: payload.text,
-      language: payload.language,
-      userId,
-      voiceId: payload.voiceId,
-      speakingRate: payload.tuning?.speakingRate ?? 1.0,
-      pitch: payload.tuning?.pitch ?? 0.0,
-    });
+    const userId = item.userId;
+    const result = await this.wavenet
+      .synthesize({
+        text: payload.text,
+        language: payload.language,
+        userId,
+        voiceId: payload.voiceId,
+        speakingRate: payload.tuning?.speakingRate ?? 1.0,
+        pitch: payload.tuning?.pitch ?? 0.0,
+        enforceLimit: item.wavenetQuota !== "approved",
+      })
+      .catch((err: unknown) => {
+        if (!(err instanceof QuotaExceededError)) throw err;
+        this.logger.warn(
+          `quota exceeded user=${userId} during playback: ${err.message}`,
+        );
+        item.wavenetQuota = "denied";
+        return null;
+      });
     if (!result) return false;
-    return this.startPlayback(guildId, state, result.buffer, StreamType.OggOpus);
+    item.wavenetQuota = "approved";
+    const started = this.startPlayback(
+      guildId,
+      state,
+      result.buffer,
+      StreamType.OggOpus,
+    );
+    if (!started) {
+      await this.usage
+        .releaseReservation(userId, payload.text.length)
+        .catch((err) =>
+          this.logger.warn("failed to release quota reservation", err),
+        );
+    }
+    return started;
   }
 
   private async playBasic(

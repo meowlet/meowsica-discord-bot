@@ -22,6 +22,9 @@ export interface WavenetSynthesisParams {
   readonly voiceId?: string | null;
   readonly speakingRate: number;
   readonly pitch: number;
+  // false for later segments of a message whose first segment already passed
+  // the quota check.
+  readonly enforceLimit: boolean;
 }
 
 export interface WavenetSynthesisResult {
@@ -69,12 +72,11 @@ export class WavenetTtsProvider {
     };
     const cached = await this.cache.get(cacheKey);
     if (cached) {
-      await this.usage.assertCanUse(params.userId, params.text.length);
-      await this.usage.recordUsage(params.userId, params.text.length);
+      await this.reserve(params);
       this.logger.debug(`cache hit (${params.text.length} chars)`);
       return { buffer: cached, fromCache: true, voiceName };
     }
-    await this.usage.assertAndReserve(params.userId, params.text.length);
+    await this.reserve(params);
     let buffer: Buffer | null = null;
     try {
       buffer = await this.client.synthesize({
@@ -95,6 +97,13 @@ export class WavenetTtsProvider {
     await this.cache.set(cacheKey, buffer);
     this.logger.debug(`generated audio (${params.text.length} chars)`);
     return { buffer, fromCache: false, voiceName };
+  }
+
+  private reserve(params: WavenetSynthesisParams): Promise<void> {
+    const chars = params.text.length;
+    return params.enforceLimit
+      ? this.usage.reserveWithinLimit(params.userId, chars)
+      : this.usage.reserve(params.userId, chars);
   }
 
   private async releaseQuiet(userId: string, chars: number): Promise<void> {

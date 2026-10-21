@@ -94,6 +94,7 @@ export async function createAppContext(): Promise<AppContext> {
   const player = new PlayerManager({
     logger,
     userPrefs,
+    usage,
     basic: basicProvider,
     wavenet: wavenetProvider,
     voice,

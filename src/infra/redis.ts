@@ -133,7 +133,8 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
           () => reject(new Error(`redis connect timed out after ${ms}ms`)),
           ms,
         );
-        if (timer && typeof timer.unref === "function") timer.unref();
+        // Kept referenced: on Bun 1.2 a pending Redis connect alone does not
+        // hold the event loop open, so an unref'd timer lets startup exit.
       }),
     ]);
   } finally {

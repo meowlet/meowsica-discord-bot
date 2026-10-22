@@ -8,6 +8,7 @@ if (!databaseUrl) {
 
 export default defineConfig({
   schema: [
+    "./src/infra/schemas.ts",
     "./src/features/settings/schema.ts",
     "./src/features/quota/schema.ts",
     "./src/features/logs/schema.ts",

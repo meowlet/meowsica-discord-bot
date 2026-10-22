@@ -108,6 +108,21 @@ export class RedisClient {
   }
 }
 
+export async function connectRedis(
+  config: { enabled: boolean; url: string },
+  logger: Logger,
+): Promise<RedisClient | null> {
+  if (!config.enabled) return null;
+  const client = new RedisClient({ url: config.url, logger });
+  try {
+    await client.connect();
+    return client;
+  } catch (err) {
+    logger.warn("redis connection failed; continuing without cache", err);
+    return null;
+  }
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {

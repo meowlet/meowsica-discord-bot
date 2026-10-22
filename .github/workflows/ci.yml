@@ -4,12 +4,17 @@ on:
   pull_request:
   push:
     branches: [main, develop]
+  # Lets other workflows gate on the full suite.
+  workflow_call:
 
 permissions:
   contents: read
 
+# Keyed on the workflow name too: when called from another workflow this
+# resolves to the caller's name, so the two runs on one ref do not cancel
+# each other.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

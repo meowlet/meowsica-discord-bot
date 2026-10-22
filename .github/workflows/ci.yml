@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, types, migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Dockerfile is the single source of truth for the Bun version, so
+      # CI always runs what production runs.
+      - name: Read Bun version from Dockerfile
+        id: bun
+        run: |
+          version=$(sed -nE 's|^FROM oven/bun:([0-9]+\.[0-9]+\.[0-9]+)-alpine.*|\1|p' Dockerfile | sort -u)
+          if [ "$(echo "$version" | wc -l)" -ne 1 ] || [ -z "$version" ]; then
+            echo "::error file=Dockerfile::every FROM must pin the same exact oven/bun:X.Y.Z-alpine"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
+
+      - run: bun install --frozen-lockfile
+
+      - name: Prettier
+        run: bun run format:check
+
+      - name: Typecheck
+        run: bunx tsc --noEmit -p .
+
+      # A schema change without its generated migration (or a drizzle config
+      # that no longer sees every pg schema) shows up as new files here.
+      - name: Migrations match schema
+        env:
+          DATABASE_URL: postgres://unused:unused@localhost:5432/unused
+        run: |
+          bunx drizzle-kit generate --name ci-check
+          if [ -n "$(git status --porcelain -- drizzle)" ]; then
+            git status --porcelain -- drizzle
+            cat drizzle/*ci-check*.sql 2>/dev/null || true
+            echo "::error::schema and drizzle/ migrations are out of sync; run drizzle-kit generate and commit the result"
+            exit 1
+          fi
+
+  migrate:
+    name: Migrations apply on a fresh database
+    runs-on: ubuntu-latest
+    needs: check
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: meowsica
+          POSTGRES_PASSWORD: meowsica
+          POSTGRES_DB: meowsica
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U meowsica -d meowsica"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://meowsica:meowsica@localhost:5432/meowsica
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Bun version from Dockerfile
+        id: bun
+        run: echo "version=$(sed -nE 's|^FROM oven/bun:([0-9.]+)-alpine.*|\1|p' Dockerfile | head -1)" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
+
+      - run: bun install --frozen-lockfile
+
+      # Twice: the second run must be a no-op.
+      - name: Apply migrations
+        run: |
+          for attempt in 1 2; do
+            echo "migration run $attempt"
+            bun -e '
+              import { closeDb, createDb } from "./src/infra/db.ts";
+              import { SchemaMigrator } from "./src/features/settings/migration.ts";
+              import { createRootLogger } from "./src/shared/logger.ts";
+              const db = createDb({ url: process.env.DATABASE_URL! });
+              const logger = createRootLogger({ level: "info", jsonMode: false });
+              await new SchemaMigrator({ db, logger }).run();
+              await closeDb(db);
+            '
+          done
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:1.2-alpine AS builder
+FROM oven/bun:1.2.23-alpine AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY patches ./patches
 RUN bun install --frozen-lockfile --production
 
 # Production stage
-FROM oven/bun:1.2-alpine AS production
+FROM oven/bun:1.2.23-alpine AS production
 
 # Install minimal runtime dependencies for voice
 RUN apk add --no-cache \

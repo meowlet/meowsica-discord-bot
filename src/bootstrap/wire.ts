@@ -1,8 +1,8 @@
 import { loadAppEnvConfig } from "../config/index.ts";
-import { Logger, createRootLogger } from "../shared/logger.ts";
+import { createRootLogger } from "../shared/logger.ts";
 import { interactionContext } from "../shared/interaction-context.ts";
 import { createDb } from "../infra/db.ts";
-import { RedisClient } from "../infra/redis.ts";
+import { connectRedis } from "../infra/redis.ts";
 import { GoogleCloudTtsClient } from "../infra/google-cloud-tts.ts";
 import { SchemaMigrator } from "../features/settings/migration.ts";
 import { isShardWorker } from "./runtime.ts";
@@ -181,19 +181,4 @@ function resolveShardId(): number | null {
   if (raw === undefined) return null;
   const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? null : parsed;
-}
-
-async function connectRedis(
-  config: { enabled: boolean; url: string },
-  logger: Logger,
-): Promise<RedisClient | null> {
-  if (!config.enabled) return null;
-  const client = new RedisClient({ url: config.url, logger });
-  try {
-    await client.connect();
-    return client;
-  } catch (err) {
-    logger.warn("redis connection failed; continuing without cache", err);
-    return null;
-  }
 }

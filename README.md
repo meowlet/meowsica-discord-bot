@@ -9,7 +9,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/servers-dark.svg"><img src="assets/badges/servers-light.svg" alt="servers: 5,300+"></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/messages-spoken-dark.svg"><img src="assets/badges/messages-spoken-light.svg" alt="messages spoken: ~3.9M"></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/chars-spoken-dark.svg"><img src="assets/badges/chars-spoken-light.svg" alt="chars spoken: ~108M"></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/est-since-dark.svg"><img src="assets/badges/est-since-light.svg" alt="est. since: 2021"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/since-dark.svg"><img src="assets/badges/since-light.svg" alt="since: 2021"></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/as-of-dark.svg"><img src="assets/badges/as-of-light.svg" alt="as of: Nov 2026"></picture>
 </p>
 <p>

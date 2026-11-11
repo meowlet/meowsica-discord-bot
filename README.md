@@ -18,24 +18,38 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/shard-2-dark.svg"><img src="assets/badges/shard-2-light.svg" alt="shard 2: servers 1,759, members 248K, messages spoken ~1.6M"></picture>
 </p>
 
-Lightweight Discord bot built with Bun + TypeScript, focused on voice/TTS flows and Postgres-backed settings/quota/log data.
+A Discord text-to-speech bot: it joins your voice channel and reads messages out loud. Built with Bun, TypeScript and discord.js, with Postgres for settings, quota and logs.
 
 Don't want to self-host? Use the button above to invite the hosted bot. It appears on Discord as Google-chan.
 
-The figures above are updated by hand. Messages and chars spoken are estimates since the 2021 launch; see `scripts/badges.ts`.
+## Commands
+
+| Command     | What it does                    |
+| ----------- | ------------------------------- |
+| `/say`      | Read text out loud              |
+| `/join`     | Join your voice channel         |
+| `/leave`    | Leave the voice channel         |
+| `/skip`     | Skip the current message        |
+| `/stop`     | Stop speaking and leave         |
+| `/queue`    | Show the messages waiting       |
+| `/voice`    | Open the voice settings         |
+| `/language` | Change the interface language   |
+| `/profile`  | Show your usage and quota       |
+| `/help`     | List what the bot can do        |
+| `/ping`     | Check how fast the bot responds |
 
 ## Disclaimer
 
 This repository is published as-is.
-I do not provide setup guides, troubleshooting, or self-host support.
+I do not provide troubleshooting or self-host support beyond what is written here.
 
 ## Requirements
 
-- Bun (latest stable)
-- Docker + Docker Compose (recommended)
+- Bun 1.2.23 (the version the Dockerfile uses)
+- Docker and Docker Compose (recommended)
 - Discord application credentials
 
-## Quick Start
+## Quick start
 
 ```bash
 cp .env.example .env
@@ -47,7 +61,9 @@ Set at least these environment variables:
 - `DISCORD_TOKEN`
 - `DISCORD_CLIENT_ID`
 
-`DATABASE_URL` is injected automatically by `docker-compose.yml` for the `bot` service.
+Optional: `GOOGLE_CLOUD_API_KEY` enables the Google Cloud TTS voices. The other options are described in `.env.example`.
+
+`DATABASE_URL` is injected automatically by `docker-compose.yml` for the `bot` service. The container also registers the slash commands and applies the database migrations on startup.
 
 ## Sharding
 
@@ -64,37 +80,35 @@ Docker example:
 ENABLE_SHARDING=true SHARD_COUNT=auto docker compose up --build
 ```
 
-## Local (Non-Docker)
+## Running without Docker
 
-If you intentionally run outside Docker:
+You need a Postgres database and `DATABASE_URL` set in `.env`.
 
 ```bash
 bun install
+bun run deploy
 bun run dev
 ```
 
-Non-Docker sharding example:
+Sharding example:
 
 ```bash
 ENABLE_SHARDING=true SHARD_COUNT=2 bun run start
 ```
 
-## Core Commands
+## Scripts
 
 ```bash
 bun run start        # normal startup
+bun run dev          # startup with reload on file changes
 bun run deploy       # register/update slash commands
-bun run start:direct # run single process bot entry
+bun run start:direct # run the bot in a single process, without the sharding manager
 ```
 
-## Runtime Shape
+## Project structure
 
-- `src/index.ts`: app entrypoint, reads env config, boots app or sharding manager.
+- `src/index.ts`: app entrypoint, reads env config, boots the app or the sharding manager.
+- `src/config/`: loads app config from env.
 - `src/bootstrap/`: wiring, startup, shutdown lifecycle.
-- `src/features/`: domain features (tts, logs, quota, settings, etc.).
-- `drizzle/`: SQL migrations; `drizzle.config.ts` configures schema + output.
-
-## Notes
-
-- App config is loaded from `src/config/index.ts`.
-- Sharding is controlled via env flags (`ENABLE_SHARDING`, `SHARD_COUNT`).
+- `src/features/`: domain features (tts, voice, settings, quota, logs).
+- `drizzle/`: SQL migrations; `drizzle.config.ts` configures schema and output.

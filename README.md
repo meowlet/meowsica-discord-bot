@@ -1,6 +1,28 @@
 # Meowsica Discord Bot
 
+<p>
+  <a href="https://discord.com/api/oauth2/authorize?client_id=909654785156853800&amp;permissions=414568537408&amp;scope=bot">
+    <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/invite-dark.svg"><img src="assets/badges/invite-light.svg" alt="Add to Discord"></picture>
+  </a>
+</p>
+<p>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/servers-dark.svg"><img src="assets/badges/servers-light.svg" alt="servers: 5,300+"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/messages-spoken-dark.svg"><img src="assets/badges/messages-spoken-light.svg" alt="messages spoken: ~3.9M"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/chars-spoken-dark.svg"><img src="assets/badges/chars-spoken-light.svg" alt="chars spoken: ~108M"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/est-since-dark.svg"><img src="assets/badges/est-since-light.svg" alt="est. since: 2021"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/as-of-dark.svg"><img src="assets/badges/as-of-light.svg" alt="as of: Nov 2026"></picture>
+</p>
+<p>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/shard-0-dark.svg"><img src="assets/badges/shard-0-light.svg" alt="shard 0: servers 1,778, members 304K, messages spoken ~1.0M"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/shard-1-dark.svg"><img src="assets/badges/shard-1-light.svg" alt="shard 1: servers 1,831, members 383K, messages spoken ~1.3M"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/badges/shard-2-dark.svg"><img src="assets/badges/shard-2-light.svg" alt="shard 2: servers 1,759, members 248K, messages spoken ~1.6M"></picture>
+</p>
+
 Lightweight Discord bot built with Bun + TypeScript, focused on voice/TTS flows and Postgres-backed settings/quota/log data.
+
+Don't want to self-host? Use the button above to invite the hosted bot. It appears on Discord as Google-chan.
+
+The figures above are updated by hand. Messages and chars spoken are estimates since the 2021 launch; see `scripts/badges.ts`.
 
 ## Disclaimer
 

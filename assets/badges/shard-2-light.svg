@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="176" height="102" viewBox="0 0 176 102" role="img" aria-label="shard 2: servers 1,759, members 248K, messages spoken ~1.6M">
+<title>shard 2: servers 1,759, members 248K, messages spoken ~1.6M</title>
+<rect x=".5" y=".5" width="175" height="101" fill="#f6f8fa" stroke="#d1d9e0"/>
+<path d="M1 28.5H175" stroke="#d1d9e0"/>
+<g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif" font-size="12">
+<text x="10" y="18.5" fill="#1f2328" font-weight="600">shard 2</text>
+<text x="10" y="50" fill="#59636e">servers</text>
+<text x="166" y="50" fill="#1f2328" font-weight="600" text-anchor="end">1,759</text>
+<text x="10" y="70" fill="#59636e">members</text>
+<text x="166" y="70" fill="#1f2328" font-weight="600" text-anchor="end">248K</text>
+<text x="10" y="90" fill="#59636e">messages spoken</text>
+<text x="166" y="90" fill="#1f2328" font-weight="600" text-anchor="end">~1.6M</text>
+</g>
+</svg>
